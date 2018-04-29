@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>G - Composing with Components</title>
+        <script type="text/javascript" src="../../../js/vue.js"></script>
+    </head>
+    <body>
+        <div id="app">
+            <ol>
+                <todo-item
+                        v-for="item in groceryList"
+                        v-bind:todo="item"
+                        v-bind:key="item.id">
+                </todo-item>
+            </ol>
+        </div>
+        <script type="text/javascript" src="g-composing-with-components.js"></script>
+    </body>
+</html>
