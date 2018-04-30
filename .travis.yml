@@ -1,0 +1,36 @@
+language: go
+
+go:
+  - 1.10.x
+
+addons:
+  apt:
+    packages:
+      - nodejs
+
+go_import_path: github.com/norunners/vue
+
+install:
+  - npm install --global source-map-support
+  - npm install --global node-gyp
+  - go get -u github.com/gopherjs/gopherjs
+  - go get -u github.com/norunners/vert
+
+before_script:
+  # Set up stack trace support for gopherjs with source-map-support.
+  - export NODE_PATH="$(npm root --global)"
+  # Set up system call support for gopherjs with node-gyp.
+  # See documentation: https://github.com/gopherjs/gopherjs/blob/master/doc/syscalls.md for details.
+  - cd $GOPATH/src/github.com/gopherjs/gopherjs/node-syscall/
+  - node-gyp rebuild
+  - mkdir -p ~/.node_libraries/
+  - cp build/Release/syscall.node ~/.node_libraries/syscall.node
+  - cd $TRAVIS_BUILD_DIR
+
+script:
+  # Diff go format.
+  - diff -u <(echo -n) <(gofmt -d .)
+  # Run go vet.
+  - go vet -v ./...
+  # Run gopherjs unit tests.
+  - gopherjs test -v
