@@ -1,3 +1,5 @@
+// Package main is an example of conditionals and loops.
+// See guide: https://vuejs.org/v2/guide/index.html#Conditionals-and-Loops for details.
 package main
 
 import (
@@ -17,8 +19,6 @@ type todo struct {
 	text string `js:"text"`
 }
 
-// main is an example of conditionals and loops.
-// See guide: https://vuejs.org/v2/guide/index.html#Conditionals-and-Loops for details.
 func main() {
 	data := &data{Object: newObject()}
 	data.todos = []todo{
@@ -34,7 +34,6 @@ func main() {
 		vue.El("#app"),
 		vue.DataValue(data),
 	)
-
 	js.Global.Set("app", app)
 }
 

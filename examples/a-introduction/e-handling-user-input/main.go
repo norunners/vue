@@ -1,3 +1,5 @@
+// Package main is an example of handling user input.
+// See guide: https://vuejs.org/v2/guide/index.html#Handling-User-Input for details.
 package main
 
 import (
@@ -20,8 +22,6 @@ func (data *data) reverseMessage() {
 	data.message = string(r)
 }
 
-// main is an example of handling user input.
-// See guide: https://vuejs.org/v2/guide/index.html#Handling-User-Input for details.
 func main() {
 	data := &data{Object: newObject()}
 	data.message = "Hello World!"
@@ -33,7 +33,6 @@ func main() {
 			vue.Field("reverseMessage", data.reverseMessage),
 		),
 	)
-
 	js.Global.Set("app", app)
 }
 

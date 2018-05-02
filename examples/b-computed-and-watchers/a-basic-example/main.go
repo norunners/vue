@@ -1,5 +1,5 @@
-// Package main is an example of handling user input.
-// See guide: https://vuejs.org/v2/guide/index.html#Handling-User-Input for details.
+// Package main is an example of a basic computed property.
+// See guide: https://vuejs.org/v2/guide/computed.html#Basic-Example for details.
 package main
 
 import (
@@ -13,6 +13,15 @@ type data struct {
 	message string `js:"message"`
 }
 
+func (data *data) reversedMessage() string {
+	r := []rune(data.message)
+	n := len(r)
+	for i := 0; i < n/2; i++ {
+		r[i], r[n-i-1] = r[n-i-1], r[i]
+	}
+	return string(r)
+}
+
 func main() {
 	data := &data{Object: newObject()}
 	data.message = "Hello World!"
@@ -20,6 +29,9 @@ func main() {
 	app := vue.New(
 		vue.El("#app"),
 		vue.DataValue(data),
+		vue.Computed(
+			vue.Field("reversedMessage", data.reversedMessage),
+		),
 	)
 	js.Global.Set("app", app)
 }
