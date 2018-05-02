@@ -1,3 +1,5 @@
+// Package main is an example of declarative rendering.
+// See guide: https://vuejs.org/v2/guide/index.html#Declarative-Rendering for details.
 package main
 
 import (
@@ -11,8 +13,6 @@ type data struct {
 	message string `js:"message"`
 }
 
-// main is an example of declarative rendering.
-// See guide: https://vuejs.org/v2/guide/index.html#Declarative-Rendering for details.
 func main() {
 	data := &data{Object: newObject()}
 	data.message = "Hello World!"
@@ -21,7 +21,6 @@ func main() {
 		vue.El("#app"),
 		vue.DataValue(data),
 	)
-
 	js.Global.Set("app", app)
 }
 

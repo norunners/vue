@@ -1,3 +1,5 @@
+// Package main is an example of composing with components.
+// See guide: https://vuejs.org/v2/guide/index.html#Composing-with-Components for details.
 package main
 
 import (
@@ -17,8 +19,6 @@ type todo struct {
 	text string `js:"text"`
 }
 
-// main is an example of composing with components.
-// See guide: https://vuejs.org/v2/guide/index.html#Composing-with-Components for details.
 func main() {
 	data := &data{Object: newObject()}
 	data.groceryList = []todo{
@@ -42,7 +42,6 @@ func main() {
 			),
 		),
 	)
-
 	js.Global.Set("app", app)
 }
 
