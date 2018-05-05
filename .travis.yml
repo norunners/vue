@@ -13,8 +13,13 @@ go_import_path: github.com/norunners/vue
 install:
   - npm install --global source-map-support
   - npm install --global node-gyp
+  # Install the gopherjs tool.
   - go get -u github.com/gopherjs/gopherjs
-  - go get -u github.com/norunners/vert
+  # Get the dependencies of vue.
+  - go get github.com/norunners/vert
+  # Get the dependencies of vueGen.
+  - go get github.com/tdewolff/minify
+  - go get github.com/dave/jennifer/jen
 
 before_script:
   # Set up stack trace support for gopherjs with source-map-support.
