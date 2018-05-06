@@ -15,7 +15,7 @@ Goals
 -----
 * Provide a cohesive solution for a framework, state manager and front end router.
 * Encourage component reuse to promote organization and combat monolithic front end applications.
-* Leverage templating to enable developers to focus on application logic within gopherjs and not front end rendering.
+* Leverage [templating](https://github.com/norunners/vue/blob/master/cmd/vueGen/README.md) to enable developers to focus on application logic with gopherjs and not front end rendering.
 * Add type safety where possible while keeping the gopherjs binding very close to the vue API.
 
 Hello World!
@@ -36,7 +36,6 @@ func main() {
 		vue.El("#app"),
 		vue.DataValue(data),
 	)
-
 	js.Global.Set("app", app)
 }
 ```
