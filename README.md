@@ -1,2 +1,2 @@
 # vue
-The progressive framework for gopherjs applications.
+The progressive framework for wasm applications.
