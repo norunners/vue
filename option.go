@@ -21,6 +21,7 @@ func Template(tmpl string) Option {
 
 // Data is the data option for components.
 // The scope of the data is within the component.
+// Data must be a pointer to be mutated by methods.
 func Data(data interface{}) Option {
 	return func(comp *Component) {
 		comp.data = data
