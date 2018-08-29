@@ -15,7 +15,7 @@ func El(el string) Option {
 // The template uses the mustache syntax for rendering.
 func Template(tmpl string) Option {
 	return func(comp *Component) {
-		comp.tmpl = tmpl
+		comp.tmpl = []byte(tmpl)
 	}
 }
 

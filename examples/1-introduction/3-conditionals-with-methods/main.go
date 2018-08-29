@@ -15,8 +15,8 @@ type Data struct {
 	Seen bool
 }
 
-func ToggleSeen(comp *vue.Component) {
-	data := comp.Data().(*Data)
+func ToggleSeen(context vue.Context) {
+	data := context.Data().(*Data)
 	data.Seen = !data.Seen
 }
 
@@ -28,9 +28,9 @@ func main() {
 		vue.Methods(ToggleSeen),
 	)
 
-	for t := time.NewTicker(2 * time.Second); ; {
+	for ticker := time.NewTicker(time.Second); ; {
 		select {
-		case <-t.C:
+		case <-ticker.C:
 			comp.Call("ToggleSeen")
 		}
 	}

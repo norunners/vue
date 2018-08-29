@@ -1,32 +1,28 @@
 // Package vue is the progressive framework for wasm applications.
 package vue
 
-import (
-	"github.com/gowasm/go-js-dom"
-)
+import "github.com/fatih/structs"
 
 // Component is a vue component.
 type Component struct {
-	el      string
-	tmpl    string
-	data    interface{}
-	methods map[string]func(*Component)
-	root    renderer
+	el       string
+	tmpl     []byte
+	data     interface{}
+	methods  map[string]func(Context)
+	renderer *renderer
 }
 
 // New creates a new component from the given options.
 func New(options ...Option) *Component {
-	methods := make(map[string]func(*Component), 0)
+	methods := make(map[string]func(Context), 0)
 	comp := &Component{methods: methods}
 	for _, option := range options {
 		option(comp)
 	}
 
-	el := dom.GetWindow().Document().QuerySelector(comp.el)
-	el.SetInnerHTML(comp.tmpl)
-
-	comp.root = comp.newRenderer(el)
-	comp.root.render(comp.data)
+	comp.renderer = newRenderer(comp.el, comp.tmpl)
+	comp.render()
+	comp.tmpl = nil
 
 	return comp
 }
@@ -36,11 +32,17 @@ func (comp *Component) Data() interface{} {
 	return comp.data
 }
 
-// Call calls the method for the given name and renders the data.
+// render calls the renderer with the prepared data.
+func (comp *Component) render() {
+	data := structs.Map(comp.data)
+	comp.renderer.render(data)
+}
+
+// Call calls the method for the given name and calls render.
 func (comp *Component) Call(name string) {
 	if function, ok := comp.methods[name]; ok {
 		function(comp)
-		comp.root.render(comp.data)
+		comp.render()
 	}
 }
 
