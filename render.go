@@ -1,9 +1,15 @@
 package vue
 
 import (
+	"bytes"
 	"fmt"
+	"github.com/albrow/vdom"
 	"github.com/cbroglie/mustache"
 	"github.com/gowasm/go-js-dom"
+	"github.com/tdewolff/minify"
+	minhtml "github.com/tdewolff/minify/html"
+	"golang.org/x/net/html"
+	"golang.org/x/net/html/atom"
 	"strings"
 )
 
@@ -13,120 +19,125 @@ const (
 	vIf   = "v-if"
 )
 
-// renderer renders the given data.
-type renderer interface {
-	render(data ...interface{})
+type renderer struct {
+	tmpl []byte
+	el   dom.Element
+	tree *vdom.Tree
+	flag *html.Node
 }
 
-// newRenderer creates a new renderer from the given dom node
-// by traversing the dom tree recursively.
-func (comp *Component) newRenderer(src dom.Node) renderer {
-	switch node := src.(type) {
-	case dom.Element:
-		children := make([]renderer, 0)
-		for key, val := range node.Attributes() {
-			if strings.HasPrefix(key, v) {
-				attr := newAttr(node, key, val)
-				children = append(children, attr)
-			}
-		}
-		for _, child := range node.ChildNodes() {
-			if renderer := comp.newRenderer(child); renderer != nil {
-				children = append(children, renderer)
-			}
-		}
-		if len(children) > 0 {
-			return &parent{children: children}
-		}
-	case dom.Text:
-		if content := strings.TrimSpace(node.TextContent()); content != "" {
-			return newText(node, content)
-		}
-	default:
-		must(fmt.Errorf("unknown node: %v with type: %T", node, node))
-	}
-	return nil
-}
+// newRenderer creates a new renderer.
+func newRenderer(el string, tmpl []byte) *renderer {
+	element := dom.GetWindow().Document().QuerySelector(el)
 
-// newText creates a new renderer for a text node.
-func newText(text dom.Text, content string) renderer {
-	tmpl, err := mustache.ParseString(content)
+	minifier := minify.New()
+	minifier.Add("text/html", &minhtml.Minifier{KeepEndTags: true})
+	tmpl, err := minifier.Bytes("text/html", tmpl)
 	must(err)
 
-	update := func(next string) {
-		text.SetTextContent(next)
-	}
-	return &updater{tmpl: tmpl, update: update}
+	return &renderer{el: element, tmpl: tmpl, tree: &vdom.Tree{}, flag: &html.Node{}}
 }
 
-// newText creates a new renderer for a vue attribute.
-func newAttr(el dom.Element, key, value string) renderer {
-	vals := strings.Split(key, ":")
-	key, typ := vals[0], ""
+// render executes the template with the given data and applies it to the dom element.
+func (renderer *renderer) render(data map[string]interface{}) {
+	buf := bytes.NewBuffer(renderer.tmpl)
+	nodes, err := html.ParseFragment(buf, &html.Node{
+		Type:     html.ElementNode,
+		Data:     "div",
+		DataAtom: atom.Div,
+	})
+	must(err)
+
+	node := renderer.renderNode(nodes[0], data)
+
+	buf = bytes.NewBuffer(nil)
+	err = html.Render(buf, node)
+	must(err)
+
+	tmpl, err := mustache.ParseString(buf.String())
+	must(err)
+
+	buf.Reset()
+	err = tmpl.FRender(buf, data)
+	must(err)
+
+	tree, err := vdom.Parse(buf.Bytes())
+	must(err)
+
+	patches, err := vdom.Diff(renderer.tree, tree)
+	must(err)
+
+	patches.Patch(renderer.el)
+	renderer.tree = tree
+}
+
+// renderNode recursive traverses the html tree and renders the nodes.
+func (renderer *renderer) renderNode(node *html.Node, data map[string]interface{}) *html.Node {
+	// Render attributes.
+	for i, attr := range node.Attr {
+		if strings.HasPrefix(attr.Key, v) {
+			deleteAttr(node, i)
+			node = renderer.renderAttr(node, attr, data)
+			// The flag signals that the tree structure was modified.
+			// The next sibling of flag is the node to render next.
+			if node == renderer.flag {
+				return node
+			}
+		}
+	}
+
+	// Render children.
+	for child := node.FirstChild; child != nil; child = child.NextSibling {
+		child = renderer.renderNode(child, data)
+	}
+	// The flag must be removed if used, this preserves the expected html structure.
+	// The flag node intentionally fails to render.
+	if node == renderer.flag.Parent {
+		node.RemoveChild(renderer.flag)
+	}
+
+	return node
+}
+
+// renderAttr renders the given vue attribute.
+func (renderer *renderer) renderAttr(node *html.Node, attr html.Attribute, data map[string]interface{}) *html.Node {
+	vals := strings.Split(attr.Key, ":")
+	dir, part := vals[0], ""
 	if len(vals) > 1 {
-		typ = vals[1]
+		part = vals[1]
 	}
-	switch key {
-	case vBind:
-		return newBindAttr(el, typ, value)
+	switch dir {
 	case vIf:
-		return newIfAttr(el, value)
+		node = renderer.renderAttrIf(node, attr.Val, data)
+	case vBind:
+		renderAttrBind(node, part, attr.Val)
 	default:
-		must(fmt.Errorf("unknown vue directive: %v", key))
+		must(fmt.Errorf("unknown vue attribute: %v", dir))
 	}
-	return nil
+	return node
 }
 
-// newBindAttr creates a new renderer for a vue bind attribute.
-func newBindAttr(el dom.Element, key, value string) renderer {
-	tmpl, err := mustache.ParseString(fmt.Sprintf("{{ %v }}", value))
-	must(err)
-
-	update := func(next string) {
-		el.SetAttribute(key, next)
+// renderAttrIf renders the vue if attribute.
+func (renderer *renderer) renderAttrIf(node *html.Node, field string, data map[string]interface{}) *html.Node {
+	if value, ok := data[field]; ok {
+		if val, ok := value.(bool); ok && val {
+			return node
+		}
 	}
-	return &updater{tmpl: tmpl, update: update}
+	node.Parent.InsertBefore(renderer.flag, node)
+	node.Parent.RemoveChild(node)
+	return renderer.flag
 }
 
-// newIfAttr creates a new renderer for a vue if attribute.
-func newIfAttr(el dom.Element, value string) renderer {
-	tmpl, err := mustache.ParseString(fmt.Sprintf("{{ #%v }}visible{{ /%v }}{{ ^%v }}hidden{{ /%v }}",
-		value, value, value, value))
-	must(err)
-
-	style := dom.WrapHTMLElement(el.Underlying()).Style()
-	update := func(next string) {
-		priority := style.GetPropertyPriority("visibility")
-		style.SetProperty("visibility", next, priority)
-	}
-	return &updater{tmpl: tmpl, update: update}
+// renderAttrBind renders the vue bind attribute.
+func renderAttrBind(node *html.Node, key, value string) {
+	node.Attr = append(node.Attr, html.Attribute{Key: key, Val: fmt.Sprintf("{{ %v }}", value)})
 }
 
-// parent represents an element with children.
-type parent struct {
-	children []renderer
-}
-
-// render satisfies renderer for parent elements.
-func (parent *parent) render(data ...interface{}) {
-	for _, child := range parent.children {
-		child.render(data...)
-	}
-}
-
-// updater renders templates and calls update on changes.
-type updater struct {
-	tmpl   *mustache.Template
-	update func(next string)
-	prev   string
-}
-
-// render satisfies renderer for updater.
-func (up *updater) render(data ...interface{}) {
-	next, err := up.tmpl.Render(data...)
-	must(err)
-	if up.prev != next {
-		up.update(next)
-		up.prev = next
-	}
+// deleteAttr deletes the attribute of the node at the index.
+// Attribute order is not preserved.
+func deleteAttr(node *html.Node, i int) {
+	n := len(node.Attr) - 1
+	node.Attr[i] = node.Attr[n]
+	node.Attr = node.Attr[:n]
 }
