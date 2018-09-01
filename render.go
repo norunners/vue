@@ -10,18 +10,22 @@ import (
 	minhtml "github.com/tdewolff/minify/html"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
+	"io"
+	"reflect"
 	"strings"
 )
 
 const (
 	v     = "v-"
 	vBind = "v-bind"
+	vFor  = "v-for"
 	vIf   = "v-if"
 )
 
 type renderer struct {
 	tmpl []byte
 	el   dom.Element
+	id   int64
 	tree *vdom.Tree
 	flag *html.Node
 }
@@ -41,17 +45,15 @@ func newRenderer(el string, tmpl []byte) *renderer {
 // render executes the template with the given data and applies it to the dom element.
 func (renderer *renderer) render(data map[string]interface{}) {
 	buf := bytes.NewBuffer(renderer.tmpl)
-	nodes, err := html.ParseFragment(buf, &html.Node{
-		Type:     html.ElementNode,
-		Data:     "div",
-		DataAtom: atom.Div,
-	})
-	must(err)
+	nodes := parse(buf)
+	if n := len(nodes); n != 1 {
+		must(fmt.Errorf("template must have a single root element, found %d", n))
+	}
 
 	node := renderer.renderNode(nodes[0], data)
 
 	buf = bytes.NewBuffer(nil)
-	err = html.Render(buf, node)
+	err := html.Render(buf, node)
 	must(err)
 
 	tmpl, err := mustache.ParseString(buf.String())
@@ -69,6 +71,17 @@ func (renderer *renderer) render(data map[string]interface{}) {
 
 	patches.Patch(renderer.el)
 	renderer.tree = tree
+}
+
+// parse parses the template into html nodes.
+func parse(reader io.Reader) []*html.Node {
+	nodes, err := html.ParseFragment(reader, &html.Node{
+		Type:     html.ElementNode,
+		Data:     "div",
+		DataAtom: atom.Div,
+	})
+	must(err)
+	return nodes
 }
 
 // renderNode recursive traverses the html tree and renders the nodes.
@@ -109,6 +122,8 @@ func (renderer *renderer) renderAttr(node *html.Node, attr html.Attribute, data 
 	switch dir {
 	case vIf:
 		node = renderer.renderAttrIf(node, attr.Val, data)
+	case vFor:
+		node = renderer.renderAttrFor(node, attr.Val, data)
 	case vBind:
 		renderAttrBind(node, part, attr.Val)
 	default:
@@ -126,6 +141,45 @@ func (renderer *renderer) renderAttrIf(node *html.Node, field string, data map[s
 	}
 	node.Parent.InsertBefore(renderer.flag, node)
 	node.Parent.RemoveChild(node)
+	return renderer.flag
+}
+
+// renderAttrFor renders the vue for attribute.
+func (renderer *renderer) renderAttrFor(node *html.Node, value string, data map[string]interface{}) *html.Node {
+	vals := strings.Split(value, "in")
+	name := bytes.TrimSpace([]byte(vals[0]))
+	field := strings.TrimSpace(vals[1])
+
+	slice, ok := data[field]
+	if !ok {
+		must(fmt.Errorf("slice not found for field: %s", field))
+	}
+
+	elem := bytes.NewBuffer(nil)
+	err := html.Render(elem, node)
+	must(err)
+
+	buf := bytes.NewBuffer(nil)
+	values := reflect.ValueOf(slice)
+	n := values.Len()
+	for i := 0; i < n; i++ {
+		key := fmt.Sprintf("%s%d", name, renderer.id)
+		renderer.id++
+
+		b := bytes.Replace(elem.Bytes(), name, []byte(key), -1)
+		_, err := buf.Write(b)
+		must(err)
+
+		data[key] = values.Index(i).Interface()
+	}
+
+	nodes := parse(buf)
+	node.Parent.InsertBefore(renderer.flag, node)
+	for _, child := range nodes {
+		node.Parent.InsertBefore(child, node)
+	}
+	node.Parent.RemoveChild(node)
+
 	return renderer.flag
 }
 
