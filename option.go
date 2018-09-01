@@ -13,6 +13,7 @@ func El(el string) Option {
 
 // Template is the template option for components.
 // The template uses the mustache syntax for rendering.
+// The template must have a single root element.
 func Template(tmpl string) Option {
 	return func(comp *Component) {
 		comp.tmpl = []byte(tmpl)
