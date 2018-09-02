@@ -16,11 +16,12 @@ import (
 )
 
 const (
-	v     = "v-"
-	vBind = "v-bind"
-	vFor  = "v-for"
-	vIf   = "v-if"
-	vOn   = "v-on"
+	v      = "v-"
+	vBind  = "v-bind"
+	vFor   = "v-for"
+	vIf    = "v-if"
+	vModel = "v-model"
+	vOn    = "v-on"
 )
 
 type renderer struct {
@@ -128,6 +129,8 @@ func (renderer *renderer) renderAttr(node *html.Node, attr html.Attribute, data 
 		node = renderer.renderAttrFor(node, attr.Val, data)
 	case vBind:
 		renderAttrBind(node, part, attr.Val)
+	case vModel:
+		renderer.renderAttrModel(node, attr.Val, data)
 	case vOn:
 		renderer.renderAttrOn(node, part, attr.Val)
 	default:
@@ -190,6 +193,23 @@ func (renderer *renderer) renderAttrFor(node *html.Node, value string, data map[
 // renderAttrBind renders the vue bind attribute.
 func renderAttrBind(node *html.Node, key, value string) {
 	node.Attr = append(node.Attr, html.Attribute{Key: key, Val: fmt.Sprintf("{{ %v }}", value)})
+}
+
+// renderAttrModel renders the vue model attribute.
+func (renderer *renderer) renderAttrModel(node *html.Node, field string, data map[string]interface{}) {
+	typ := "input"
+	node.Attr = append(node.Attr, html.Attribute{Key: typ, Val: field})
+	renderer.cbs.addCallback(renderer.el, typ, renderer.cbs.vModel)
+
+	value, ok := data[field]
+	if !ok {
+		must(fmt.Errorf("unknown data field: %s", field))
+	}
+	val, ok := value.(string)
+	if !ok {
+		must(fmt.Errorf("data field is not of type string: %T", field))
+	}
+	node.Attr = append(node.Attr, html.Attribute{Key: "value", Val: val})
 }
 
 // renderAttrOn renders the vue on attribute.
