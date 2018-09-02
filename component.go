@@ -20,7 +20,8 @@ func New(options ...Option) *Component {
 		option(comp)
 	}
 
-	comp.renderer = newRenderer(comp.el, comp.tmpl)
+	cbs := newCallbacks(comp)
+	comp.renderer = newRenderer(comp.el, comp.tmpl, cbs)
 	comp.render()
 	comp.tmpl = nil
 
