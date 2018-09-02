@@ -1,7 +1,10 @@
 // Package vue is the progressive framework for wasm applications.
 package vue
 
-import "github.com/fatih/structs"
+import (
+	"github.com/fatih/structs"
+	"reflect"
+)
 
 // Component is a vue component.
 type Component struct {
@@ -33,18 +36,31 @@ func (comp *Component) Data() interface{} {
 	return comp.data
 }
 
+// Get returns the data field value.
+func (comp *Component) Get(field string) interface{} {
+	data := reflect.Indirect(reflect.ValueOf(comp.data))
+	return data.FieldByName(field).Interface()
+}
+
+// Set assigns the data field to the given value.
+func (comp *Component) Set(field string, value interface{}) {
+	data := reflect.Indirect(reflect.ValueOf(comp.data))
+	val := reflect.Indirect(data.FieldByName(field))
+	val.Set(reflect.Indirect(reflect.ValueOf(value)))
+}
+
+// Call calls the given method then calls render.
+func (comp *Component) Call(method string) {
+	if function, ok := comp.methods[method]; ok {
+		function(comp)
+		comp.render()
+	}
+}
+
 // render calls the renderer with the prepared data.
 func (comp *Component) render() {
 	data := structs.Map(comp.data)
 	comp.renderer.render(data)
-}
-
-// Call calls the method for the given name and calls render.
-func (comp *Component) Call(name string) {
-	if function, ok := comp.methods[name]; ok {
-		function(comp)
-		comp.render()
-	}
 }
 
 // must panics on errors.
