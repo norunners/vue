@@ -37,7 +37,7 @@ func main() {
 		},
 	}
 
-	comp := vue.New(
+	vm := vue.New(
 		vue.El("#app"),
 		vue.Template(tmpl),
 		vue.Data(data),
@@ -45,7 +45,7 @@ func main() {
 	)
 
 	time.AfterFunc(time.Second, func() {
-		comp.Call("Add")
+		vm.Call("Add")
 	})
 	select {}
 }
