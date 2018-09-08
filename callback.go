@@ -5,29 +5,27 @@ import (
 	"github.com/gowasm/go-js-dom"
 )
 
-type callbacks struct {
-	context Context
-	set     map[string]struct{}
+// callback interacts with event listeners on the root element.
+// The callback is passed down to subcomponents.
+type callback interface {
+	addEventListener(typ string, cb func(dom.Event))
+	vModel(event dom.Event)
+	vOn(event dom.Event)
+	render()
 }
 
-// newCallbacks is created with event callback methods.
-func newCallbacks(context Context) *callbacks {
-	set := make(map[string]struct{}, 0)
-	return &callbacks{context: context, set: set}
-}
-
-// addCallback adds the callback to the element as an event listener unless the type was previously added.
-func (cbs *callbacks) addCallback(el dom.Element, typ string, cb func(dom.Event)) {
-	_, ok := cbs.set[typ]
+// addEventListener adds the callback to the element as an event listener unless the type was previously added.
+func (vm *ViewModel) addEventListener(typ string, cb func(dom.Event)) {
+	_, ok := vm.callbacks[typ]
 	if ok {
 		return
 	}
-	el.AddEventListener(typ, false, cb)
-	cbs.set[typ] = struct{}{}
+	vm.comp.el.AddEventListener(typ, false, cb)
+	vm.callbacks[typ] = struct{}{}
 }
 
 // vModel is the vue model event callback.
-func (cbs *callbacks) vModel(event dom.Event) {
+func (vm *ViewModel) vModel(event dom.Event) {
 	typ := event.Type()
 	field, ok := event.Target().Attributes()[typ]
 	if !ok {
@@ -35,17 +33,17 @@ func (cbs *callbacks) vModel(event dom.Event) {
 	}
 
 	value := event.Target().Underlying().Get("value").String()
-	cbs.context.Set(field, value)
-	cbs.context.render()
+	vm.Set(field, value)
+	vm.render()
 }
 
 // vOn is the vue on event callback.
-func (cbs *callbacks) vOn(event dom.Event) {
+func (vm *ViewModel) vOn(event dom.Event) {
 	typ := event.Type()
 	method, ok := event.Target().Attributes()[typ]
 	if !ok {
 		must(fmt.Errorf("unknown event type: %s", typ))
 	}
 
-	cbs.context.Call(method)
+	vm.Call(method)
 }

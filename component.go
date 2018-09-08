@@ -2,70 +2,53 @@
 package vue
 
 import (
-	"github.com/fatih/structs"
-	"reflect"
+	"github.com/gowasm/go-js-dom"
 )
 
-// Component is a vue component.
-type Component struct {
-	el       string
-	tmpl     []byte
-	data     interface{}
-	methods  map[string]func(Context)
-	renderer *renderer
+// Comp is a vue component.
+type Comp struct {
+	el      dom.Element
+	tmpl    []byte
+	data    interface{}
+	methods map[string]func(Context)
+	subs    map[string]*Comp
+
+	props    map[string]interface{}
+	isSub    bool
+	callback callback
 }
 
-// New creates a new component from the given options.
-func New(options ...Option) *Component {
+// Component creates a new component from the given options.
+func Component(options ...Option) *Comp {
 	methods := make(map[string]func(Context), 0)
-	comp := &Component{methods: methods}
+	subs := make(map[string]*Comp, 0)
+	props := make(map[string]interface{}, 0)
+
+	comp := &Comp{data: struct{}{}, methods: methods, subs: subs, props: props}
 	for _, option := range options {
 		option(comp)
 	}
-
-	cbs := newCallbacks(comp)
-	comp.renderer = newRenderer(comp.el, comp.tmpl, cbs)
-	comp.render()
-	comp.tmpl = nil
-
 	return comp
 }
 
-// Data returns the data for the component.
-func (comp *Component) Data() interface{} {
-	return comp.data
-}
-
-// Get returns the data field value.
-func (comp *Component) Get(field string) interface{} {
-	data := reflect.Indirect(reflect.ValueOf(comp.data))
-	return data.FieldByName(field).Interface()
-}
-
-// Set assigns the data field to the given value.
-func (comp *Component) Set(field string, value interface{}) {
-	data := reflect.Indirect(reflect.ValueOf(comp.data))
-	val := reflect.Indirect(data.FieldByName(field))
-	val.Set(reflect.Indirect(reflect.ValueOf(value)))
-}
-
-// Call calls the given method then calls render.
-func (comp *Component) Call(method string) {
-	if function, ok := comp.methods[method]; ok {
-		function(comp)
-		comp.render()
+// hasProp determines if a component has a prop.
+// Returns false for nil components.
+func (comp *Comp) hasProp(prop string) bool {
+	if comp == nil {
+		return false
 	}
+	_, ok := comp.props[prop]
+	return ok
 }
 
-// render calls the renderer with the prepared data.
-func (comp *Component) render() {
-	data := structs.Map(comp.data)
-	comp.renderer.render(data)
-}
-
-// must panics on errors.
-func must(err error) {
-	if err != nil {
-		panic(err)
+// newSub attempts to creates a new subcomponent.
+// Returns false for unknown elements.
+func (comp *Comp) newSub(element string) (*Comp, bool) {
+	sub, ok := comp.subs[element]
+	if !ok {
+		return nil, false
 	}
+	sub.isSub = true
+	sub.callback = comp.callback
+	return sub, true
 }
