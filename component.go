@@ -7,11 +7,12 @@ import (
 
 // Comp is a vue component.
 type Comp struct {
-	el      dom.Element
-	tmpl    []byte
-	data    interface{}
-	methods map[string]func(Context)
-	subs    map[string]*Comp
+	el       dom.Element
+	tmpl     []byte
+	data     interface{}
+	methods  map[string]func(Context)
+	computed map[string]func(Context) interface{}
+	subs     map[string]*Comp
 
 	props    map[string]interface{}
 	isSub    bool
@@ -21,10 +22,12 @@ type Comp struct {
 // Component creates a new component from the given options.
 func Component(options ...Option) *Comp {
 	methods := make(map[string]func(Context), 0)
+	computed := make(map[string]func(Context) interface{}, 0)
 	subs := make(map[string]*Comp, 0)
 	props := make(map[string]interface{}, 0)
 
-	comp := &Comp{data: struct{}{}, methods: methods, subs: subs, props: props}
+	comp := &Comp{data: struct{}{}, methods: methods,
+		computed: computed, subs: subs, props: props}
 	for _, option := range options {
 		option(comp)
 	}

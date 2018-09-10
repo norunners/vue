@@ -4,6 +4,9 @@ import (
 	"github.com/gowasm/go-js-dom"
 	"github.com/tdewolff/minify"
 	"github.com/tdewolff/minify/html"
+	"reflect"
+	"runtime"
+	"strings"
 )
 
 // Option uses the option pattern for components.
@@ -39,6 +42,28 @@ func Data(data interface{}) Option {
 	}
 }
 
+// Methods is the methods option for components.
+// The given functions are registered as methods for the component.
+func Methods(functions ...func(context Context)) Option {
+	return func(comp *Comp) {
+		for _, function := range functions {
+			name := funcName(function)
+			comp.methods[name] = function
+		}
+	}
+}
+
+// Computed is the computed option for components.
+// The given functions are registered as computed properties for the component.
+func Computed(functions ...func(Context) interface{}) Option {
+	return func(comp *Comp) {
+		for _, function := range functions {
+			name := funcName(function)
+			comp.computed[name] = function
+		}
+	}
+}
+
 // Sub is the subcomponent option for components.
 func Sub(element string, sub *Comp) Option {
 	return func(comp *Comp) {
@@ -53,4 +78,18 @@ func Props(props ...string) Option {
 			sub.props[prop] = nil
 		}
 	}
+}
+
+// funcName returns the name of the given function.
+func funcName(function interface{}) string {
+	fn := reflect.ValueOf(function)
+	name := runtime.FuncForPC(fn.Pointer()).Name()
+	return stripMetadata(name)
+}
+
+// stripMetadata returns the function name without metadata.
+func stripMetadata(name string) string {
+	parts := strings.Split(name, ".")
+	name = parts[len(parts)-1]
+	return strings.TrimRight(name, "-fm")
 }

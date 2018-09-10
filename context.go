@@ -15,24 +15,30 @@ type Context interface {
 }
 
 // Data returns the data for the component.
-// Props are not included in data.
+// Props and computed are excluded from data.
 func (vm *ViewModel) Data() interface{} {
 	return vm.comp.data
 }
 
 // Get returns the data field value.
-// Props are included to get.
+// Props and computed are included to get.
+// Computed may be calculated as needed.
 func (vm *ViewModel) Get(field string) interface{} {
-	data := vm.dataMap()
-	value, ok := data[field]
+	value, ok := vm.data[field]
 	if !ok {
-		must(fmt.Errorf("unknown data field: %s", field))
+		function, ok := vm.comp.computed[field]
+		if !ok {
+			must(fmt.Errorf("unknown data field: %s", field))
+		}
+
+		value = function(vm)
+		vm.data[field] = value
 	}
 	return value
 }
 
 // Set assigns the data field to the given value.
-// Props are not included to set.
+// Props and computed are excluded to set.
 func (vm *ViewModel) Set(field string, value interface{}) {
 	data := reflect.Indirect(reflect.ValueOf(vm.comp.data))
 	val := reflect.Indirect(data.FieldByName(field))
@@ -47,11 +53,25 @@ func (vm *ViewModel) Call(method string) {
 	}
 }
 
-// dataMap returns the data plus props as a map.
-func (vm *ViewModel) dataMap() map[string]interface{} {
-	data := structs.Map(vm.comp.data)
+// mapData creates a map from data, props and computed.
+func (vm *ViewModel) mapData() {
+	vm.data = structs.Map(vm.comp.data)
+	vm.props()
+	vm.computed()
+}
+
+// props maps props to data.
+func (vm *ViewModel) props() {
 	for field, prop := range vm.comp.props {
-		data[field] = prop
+		vm.data[field] = prop
 	}
-	return data
+}
+
+// computed maps computed to data.
+func (vm *ViewModel) computed() {
+	for computed, function := range vm.comp.computed {
+		if _, ok := vm.data[computed]; !ok {
+			vm.data[computed] = function(vm)
+		}
+	}
 }

@@ -7,6 +7,7 @@ type ViewModel struct {
 	tmpl      *template
 	renderer  *renderer
 	rendered  bool
+	data      map[string]interface{}
 	callbacks map[string]struct{}
 }
 
