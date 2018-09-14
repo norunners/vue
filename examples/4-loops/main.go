@@ -25,15 +25,14 @@ type Todo struct {
 
 func Add(context vue.Context) {
 	data := context.Data().(*Data)
-	data.Todos = append(data.Todos, Todo{"Yikes!"})
+	data.Todos = append(data.Todos, Todo{"Build something wasm!"})
 }
 
 func main() {
 	data := &Data{
 		Todos: []Todo{
-			{Text: "Learn wasm"},
-			{Text: "Learn vue"},
-			{Text: "Build something awesome"},
+			{Text: "Learn Go"},
+			{Text: "Learn Vue"},
 		},
 	}
 
