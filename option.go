@@ -1,9 +1,6 @@
 package vue
 
 import (
-	"github.com/gowasm/go-js-dom"
-	"github.com/tdewolff/minify"
-	"github.com/tdewolff/minify/html"
 	"reflect"
 	"runtime"
 	"strings"
@@ -16,7 +13,7 @@ type Option func(*Comp)
 // The root element of a component is query selected from the value, e.g. #app or body.
 func El(el string) Option {
 	return func(comp *Comp) {
-		comp.el = dom.GetWindow().Document().QuerySelector(el)
+		comp.el = document.QuerySelector(el)
 	}
 }
 
@@ -25,10 +22,6 @@ func El(el string) Option {
 // The template must have a single root element.
 func Template(tmpl string) Option {
 	return func(comp *Comp) {
-		minifier := minify.New()
-		minifier.Add("text/html", &html.Minifier{KeepEndTags: true})
-		tmpl, err := minifier.Bytes("text/html", []byte(tmpl))
-		must(err)
 		comp.tmpl = tmpl
 	}
 }
