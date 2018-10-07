@@ -10,7 +10,7 @@ go get github.com/norunners/vue
 
 ## Goals
 * Provide a unified solution for a framework, state manager and router in the frontend space.
-* Leverage templating to separate application logic from frontend rendering.
+* Leverage [templating](https://github.com/norunners/vueg) to separate application logic from frontend rendering.
 * Simplify data binding to ease the relation of state management to rendering.
 * Encourage component reuse to promote development productivity.
 * Follow an idiomatic Go translation of the familiar Vue API.

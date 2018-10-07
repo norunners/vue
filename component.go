@@ -8,7 +8,7 @@ import (
 // Comp is a vue component.
 type Comp struct {
 	el       dom.Element
-	tmpl     []byte
+	tmpl     string
 	data     interface{}
 	methods  map[string]func(Context)
 	computed map[string]func(Context) interface{}
