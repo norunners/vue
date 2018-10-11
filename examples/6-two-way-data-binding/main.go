@@ -5,10 +5,8 @@ import (
 )
 
 const tmpl = `
-<div>
-  <p>{{ Message }}</p>
-  <input v-model="Message">
-</div>
+<p>{{ Message }}</p>
+<input v-model="Message">
 `
 
 type Data struct {
