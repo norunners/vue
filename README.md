@@ -29,7 +29,7 @@ type Data struct {
 func main() {
 	vue.New(
 		vue.El("#app"),
-		vue.Template("<div>{{ Message }}</div>"),
+		vue.Template("<p>{{ Message }}</p>"),
 		vue.Data(Data{Message: "Hello WebAssembly!"}),
 	)
 

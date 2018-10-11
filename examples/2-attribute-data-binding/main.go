@@ -6,12 +6,10 @@ import (
 )
 
 const tmpl = `
-<div>
-  <span v-bind:title="Message">
-    Hover your mouse over me for a few seconds
-    to see my dynamically bound title!
-  </span>
-</div>
+<span v-bind:title="Message">
+  Hover your mouse over me for a few seconds
+  to see my dynamically bound title!
+</span>
 `
 
 type Data struct {

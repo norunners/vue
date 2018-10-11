@@ -6,9 +6,7 @@ import (
 )
 
 const tmpl = `
-<div>
-  <span v-if="Seen">Now you see me</span>
-</div>
+<span v-if="Seen">Now you see me</span>
 `
 
 type Data struct {
