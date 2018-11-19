@@ -40,8 +40,15 @@ func (vm *ViewModel) vModel(event dom.Event) {
 // vOn is the vue on event callback.
 func (vm *ViewModel) vOn(event dom.Event) {
 	typ := event.Type()
-	method, ok := event.Target().Attributes()[typ]
-	if !ok {
+	var method string
+	for elem := event.Target(); elem != nil; elem = elem.ParentElement() {
+		var ok bool
+		method, ok = elem.Attributes()[typ]
+		if ok {
+			break
+		}
+	}
+	if method == "" {
 		must(fmt.Errorf("unknown event type: %s", typ))
 	}
 
