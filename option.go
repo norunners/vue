@@ -46,6 +46,16 @@ func Methods(functions ...func(context Context)) Option {
 	}
 }
 
+// NamedMethods is the methods option for components.
+// The given functions are registered as methods for the component.
+func NamedMethods(functions map[string]func(Context)) Option {
+	return func(comp *Comp) {
+		for name, function := range functions {
+			comp.methods[name] = function
+		}
+	}
+}
+
 // Computed is the computed option for components.
 // The given functions are registered as computed properties for the component.
 func Computed(functions ...func(Context) interface{}) Option {
