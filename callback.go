@@ -40,10 +40,21 @@ func (vm *ViewModel) vModel(event dom.Event) {
 // vOn is the vue on event callback.
 func (vm *ViewModel) vOn(event dom.Event) {
 	typ := event.Type()
-	method, ok := event.Target().Attributes()[typ]
+	method, ok := findMethod(event.Target(), typ)
 	if !ok {
 		must(fmt.Errorf("unknown event type: %s", typ))
 	}
 
 	vm.Call(method)
+}
+
+// findMethod finds the method name from the event type by searching up the dom tree.
+func findMethod(elem dom.Element, typ string) (string, bool) {
+	if elem == nil {
+		return "", false
+	}
+	if method, ok := elem.Attributes()[typ]; ok {
+		return method, true
+	}
+	return findMethod(elem.ParentElement(), typ)
 }
