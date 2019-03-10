@@ -35,9 +35,17 @@ func Data(data interface{}) Option {
 	}
 }
 
+// Method is the method option for components.
+// The given name and function are registered as a method for the component.
+func Method(name string, function func(Context)) Option {
+	return func(comp *Comp) {
+		comp.methods[name] = function
+	}
+}
+
 // Methods is the methods option for components.
 // The given functions are registered as methods for the component.
-func Methods(functions ...func(context Context)) Option {
+func Methods(functions ...func(Context)) Option {
 	return func(comp *Comp) {
 		for _, function := range functions {
 			name := funcName(function)
