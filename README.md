@@ -17,7 +17,7 @@ go get github.com/norunners/vue
 * Follow an idiomatic Go translation of the familiar Vue API.
 
 ## Hello World!
-The `main.go` file is compiled to a `.wasm` WebAssemply file.
+The `main.go` file is compiled to a `.wasm` WebAssembly file.
 ```go
 package main
 
