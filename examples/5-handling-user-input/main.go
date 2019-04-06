@@ -5,10 +5,12 @@ import (
 )
 
 const tmpl = `
-<p>{{ Message }}</p>
-<button v-on:click="ReverseMessage">
-  Reverse Message
-</button>
+<div>
+  <p>{{ Message }}</p>
+  <button v-on:click="ReverseMessage">
+    Reverse Message
+  </button>
+</div>
 `
 
 type Data struct {

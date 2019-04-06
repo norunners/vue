@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/gowasm/go-js-dom"
 	"golang.org/x/net/html"
-	"strings"
 	"syscall/js"
 )
 
@@ -28,55 +27,83 @@ func init() {
 	document = dom.WrapDocument(doc)
 }
 
-// newNode recursively creates a new virtual node from the dom node.
-func newNode(node dom.Node) *vnode {
-	if node == nil {
-		return nil
+// newNode creates a virtual node by query selecting the given element.
+func newNode(el string) *vnode {
+	node := document.QuerySelector(el)
+	return &vnode{attrs: node.Attributes(), node: node}
+}
+
+// newSubNode creates a virtual subcomponent node from the given template.
+func newSubNode(tmpl string) *vnode {
+	node := parseNode(tmpl)
+	var ok bool
+	if node, ok = firstElement(node); !ok {
+		must(fmt.Errorf("failed to find first element from template: %s", tmpl))
 	}
-	vnode := &vnode{}
-	switch n := node.(type) {
-	case dom.Element:
-		vnode.typ = html.ElementNode
-		vnode.data = strings.ToLower(n.TagName())
+	return createElement(node)
+}
 
-		attrs := n.Attributes()
-		vnode.attrs = make(map[string]string, len(attrs))
-		for key, val := range attrs {
-			vnode.attrs[key] = val
-		}
+// createElement creates a virtual node element without children nor attributes.
+func createElement(node *html.Node) *vnode {
+	el := document.CreateElement(node.Data)
+	attrs := make(map[string]string, len(node.Attr))
+	return &vnode{
+		typ:   node.Type,
+		data:  node.Data,
+		attrs: attrs,
+		node:  el,
+	}
+}
 
-		for child := node.FirstChild(); child != nil; child = child.NextSibling() {
-			vnode.append(newNode(child))
+// createNode recursively creates a virtual node from the html node.
+func createNode(node *html.Node, subs subs) *vnode {
+	vnode := &vnode{typ: node.Type, data: node.Data}
+	switch node.Type {
+	case html.ElementNode:
+		if subNode, ok := subs.vnode(node.Data); ok {
+			subNode.renderAttributes(node.Attr)
+			return subNode
+		} else {
+			vnode.node = document.CreateElement(node.Data)
+			vnode.attrs = make(map[string]string, len(node.Attr))
+			for _, attr := range node.Attr {
+				vnode.setAttr(attr.Key, attr.Val)
+			}
+			for child := node.FirstChild; child != nil; child = child.NextSibling {
+				vnode.append(createNode(child, subs))
+			}
 		}
-	case dom.Text:
-		vnode.typ = html.TextNode
-		vnode.data = n.TextContent()
+	case html.TextNode:
+		vnode.node = document.CreateTextNode(node.Data)
 	default:
-		must(fmt.Errorf("unknown dom node type: %d", n.NodeType()))
+		must(fmt.Errorf("unknown node type: %v", node.Type))
 	}
-	// Set the dom node last prevents dom calls during creation.
-	vnode.node = node
 	return vnode
 }
 
 // render recursively renders the virtual node.
-func (dst *vnode) render(src *html.Node) {
+func (dst *vnode) render(src *html.Node, subs subs) {
 	for dstChild, srcChild := dst.firstChild, src.FirstChild; dstChild != nil || srcChild != nil; {
 		switch {
 		case dstChild == nil:
-			dst.append(createNode(srcChild))
+			dst.append(createNode(srcChild, subs))
 		case srcChild == nil:
 			dst.remove(dstChild)
 		case dstChild.typ != srcChild.Type:
-			dst.replace(createNode(srcChild), dstChild)
+			dst.replace(createNode(srcChild, subs), dstChild)
 		default:
 			switch srcChild.Type {
 			case html.ElementNode:
-				if dstChild.data != srcChild.Data {
-					dst.replace(createNode(srcChild), dstChild)
+				if subNode, ok := subs.vnode(srcChild.Data); ok {
+					subNode.renderAttributes(srcChild.Attr)
+					dst.replace(subNode, dstChild)
 				} else {
-					dstChild.renderAttributes(dstChild.attrs)
-					dstChild.render(srcChild)
+					if dstChild.data != srcChild.Data {
+						dst.replace(createNode(srcChild, subs), dstChild)
+					} else {
+						dstChild.renderAttributes(srcChild.Attr)
+						dstChild.render(srcChild, subs)
+					}
 				}
 			case html.TextNode:
 				if dstChild.data != srcChild.Data {
@@ -95,40 +122,20 @@ func (dst *vnode) render(src *html.Node) {
 	}
 }
 
-// createNode recursively creates a virtual node from the html node.
-// createNode recursively creates a virtual node from the html node.
-func createNode(node *html.Node) *vnode {
-	vnode := &vnode{typ: node.Type, data: node.Data}
-	switch node.Type {
-	case html.ElementNode:
-		vnode.node = document.CreateElement(node.Data)
-		vnode.attrs = make(map[string]string, len(node.Attr))
-		for _, attr := range node.Attr {
-			vnode.setAttr(attr.Key, attr.Val)
-		}
-		for child := node.FirstChild; child != nil; child = child.NextSibling {
-			vnode.append(createNode(child))
-		}
-	case html.TextNode:
-		vnode.node = document.CreateTextNode(node.Data)
-	default:
-		must(fmt.Errorf("unknown node type: %v", node.Type))
-	}
-	return vnode
-}
-
 // renderAttributes renders the attributes.
-func (vnode *vnode) renderAttributes(attrs map[string]string) {
+func (vnode *vnode) renderAttributes(attrs []html.Attribute) {
 	keys := make(map[string]struct{}, len(vnode.attrs)+len(attrs))
-	for key := range vnode.attrs {
-		keys[key] = struct{}{}
+	srcAttrs := make(map[string]string, len(attrs))
+	for _, attr := range attrs {
+		keys[attr.Key] = struct{}{}
+		srcAttrs[attr.Key] = attr.Val
 	}
-	for key := range attrs {
+	for key := range vnode.attrs {
 		keys[key] = struct{}{}
 	}
 
 	for key := range keys {
-		if srcVal, ok := attrs[key]; ok {
+		if srcVal, ok := srcAttrs[key]; ok {
 			if dstVal, ok := vnode.attrs[key]; !ok || dstVal != srcVal {
 				vnode.setAttr(key, srcVal)
 			}

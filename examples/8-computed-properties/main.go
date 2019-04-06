@@ -5,8 +5,10 @@ import (
 )
 
 const tmpl = `
-<p>Original message: "{{ Message }}"</p>
-<p>Computed reversed message: "{{ ReversedMessage }}"</p>
+<div>
+  <p>Original message: "{{ Message }}"</p>
+  <p>Computed reversed message: "{{ ReversedMessage }}"</p>
+</div>
 `
 
 type Data struct {

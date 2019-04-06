@@ -1,28 +1,44 @@
 package vue
 
 import (
-	"golang.org/x/net/html"
+	"fmt"
+	"github.com/fatih/structs"
 )
 
-// render renders the prepared data.
-// Subcomponents use the callback to render the root element.
+// render executes and renders the prepared state.
 func (vm *ViewModel) render() {
+	vm.mapState()
+	node := vm.execute(vm.state)
+	vm.subs.reset()
 	if vm.comp.isSub {
-		if vm.executed {
-			vm.comp.callback.render()
+		var ok bool
+		if node, ok = firstElement(node); !ok {
+			must(fmt.Errorf("failed to find first element from node: %s", node.Data))
 		}
-		return
 	}
-
-	vm.mapData()
-	node := vm.tmpl.execute(vm.data)
-	vm.vnode.render(node)
+	vm.vnode.render(node, vm.subs)
+	vm.subs.reset()
 }
 
-// executeSub executes the subcomponent into a node.
-func (vm *ViewModel) executeSub() *html.Node {
-	vm.mapData()
-	node := vm.tmpl.execute(vm.data)
-	vm.executed = true
-	return node
+// mapData creates a map of state from data, props and computed.
+func (vm *ViewModel) mapState() {
+	vm.state = structs.Map(vm.data)
+	vm.mapProps()
+	vm.mapComputed()
+}
+
+// mapProps maps props to state.
+func (vm *ViewModel) mapProps() {
+	for field, prop := range vm.props {
+		vm.state[field] = prop
+	}
+}
+
+// mapComputed maps computed to state.
+func (vm *ViewModel) mapComputed() {
+	for computed, function := range vm.comp.computed {
+		if _, ok := vm.state[computed]; !ok {
+			vm.state[computed] = function(vm)
+		}
+	}
 }

@@ -4,22 +4,13 @@ import (
 	"github.com/gowasm/go-js-dom"
 )
 
-// callback interacts with event listeners on the root element.
-// The callback is passed down to subcomponents.
-type callback interface {
-	addEventListener(typ string, cb func(dom.Event))
-	vModel(event dom.Event)
-	vOn(event dom.Event)
-	render()
-}
-
 // addEventListener adds the callback to the element as an event listener unless the type was previously added.
 func (vm *ViewModel) addEventListener(typ string, cb func(dom.Event)) {
-	if _, ok := vm.callbacks[typ]; ok {
+	if _, ok := vm.funcs[typ]; ok {
 		return
 	}
-	vm.comp.el.AddEventListener(typ, cb, false)
-	vm.callbacks[typ] = struct{}{}
+	fn := vm.vnode.node.AddEventListener(typ, cb, false)
+	vm.funcs[typ] = fn
 }
 
 // vModel is the vue model event callback.
@@ -40,6 +31,13 @@ func (vm *ViewModel) vOn(event dom.Event) {
 		return
 	}
 	vm.Call(method)
+}
+
+// release removes all the event listeners.
+func (vm *ViewModel) release() {
+	for typ, fn := range vm.funcs {
+		vm.vnode.node.RemoveEventListener(typ, fn, false)
+	}
 }
 
 // findAttrValue finds the attribute value from the given key by searching up the dom tree.
