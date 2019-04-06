@@ -6,8 +6,10 @@ import (
 
 const (
 	tmpl = `
-<p>Using mustaches: {{{ RawHtml }}}</p>
-<p>Using v-html directive: <span v-html="RawHtml"></span></p>
+<div>
+  <p>Using mustaches: {{{ RawHtml }}}</p>
+  <p>Using v-html directive: <span v-html="RawHtml"></span></p>
+</div>
 `
 	rawHtml = `
 <span style="color: red">This should be red.</span>

@@ -2,56 +2,52 @@
 package vue
 
 import (
-	"github.com/gowasm/go-js-dom"
+	"fmt"
+	"reflect"
 )
 
 // Comp is a vue component.
 type Comp struct {
-	el       dom.Element
+	el       string
 	tmpl     string
 	data     interface{}
 	methods  map[string]func(Context)
 	computed map[string]func(Context) interface{}
+	props    map[string]struct{}
 	subs     map[string]*Comp
-
-	props    map[string]interface{}
 	isSub    bool
-	callback callback
 }
 
 // Component creates a new component from the given options.
 func Component(options ...Option) *Comp {
 	methods := make(map[string]func(Context), 0)
 	computed := make(map[string]func(Context) interface{}, 0)
+	props := make(map[string]struct{}, 0)
 	subs := make(map[string]*Comp, 0)
-	props := make(map[string]interface{}, 0)
 
-	comp := &Comp{data: struct{}{}, methods: methods,
-		computed: computed, subs: subs, props: props}
+	comp := &Comp{
+		data:     struct{}{},
+		methods:  methods,
+		computed: computed,
+		props:    props,
+		subs:     subs,
+	}
 	for _, option := range options {
 		option(comp)
 	}
 	return comp
 }
 
-// hasProp determines if a component has a prop.
-// Returns false for nil components.
-func (comp *Comp) hasProp(prop string) bool {
-	if comp == nil {
-		return false
+// newData creates new data from the function.
+// Without a function the data of the component is returned.
+func (comp *Comp) newData() interface{} {
+	value := reflect.ValueOf(comp.data)
+	if value.Type().Kind() != reflect.Func {
+		return value.Interface()
 	}
-	_, ok := comp.props[prop]
-	return ok
-}
-
-// newSub attempts to creates a new subcomponent.
-// Returns false for unknown elements.
-func (comp *Comp) newSub(element string) (*Comp, bool) {
-	sub, ok := comp.subs[element]
-	if !ok {
-		return nil, false
+	rets := value.Call(nil)
+	if n := len(rets); n != 1 {
+		must(fmt.Errorf("invalid return length: %d", n))
 	}
-	sub.isSub = true
-	sub.callback = comp.callback
-	return sub, true
+	return rets[0].Interface()
 }
