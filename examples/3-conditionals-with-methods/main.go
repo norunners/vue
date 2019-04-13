@@ -26,9 +26,9 @@ func main() {
 		vue.Methods(ToggleSeen),
 	)
 
-	for ticker := time.NewTicker(time.Second); ; {
+	for tick := time.Tick(time.Second); ; {
 		select {
-		case <-ticker.C:
+		case <-tick:
 			vm.Call("ToggleSeen")
 		}
 	}

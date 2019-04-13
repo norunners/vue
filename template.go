@@ -59,7 +59,7 @@ func (vm *ViewModel) executeElement(node *html.Node, data map[string]interface{}
 	}
 
 	// Execute subcomponent.
-	if vm.subs.newInstance(node.Data) {
+	if vm.subs.newInstance(node.Data, vm.bus) {
 		return node.NextSibling
 	}
 
@@ -228,6 +228,7 @@ func (vm *ViewModel) executeAttrOn(node *html.Node, typ, method string) {
 	node.Attr = append(node.Attr, html.Attribute{Key: typ, Val: method})
 
 	vm.addEventListener(typ, vm.vOn)
+	vm.bus.sub(typ, method)
 }
 
 // parseNode parses the template into an html node.

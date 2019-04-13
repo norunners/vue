@@ -15,6 +15,7 @@ func (vm *ViewModel) addEventListener(typ string, cb func(dom.Event)) {
 
 // vModel is the vue model event callback.
 func (vm *ViewModel) vModel(event dom.Event) {
+	event.StopImmediatePropagation()
 	field, ok := findAttrValue(event.Target(), event.Type())
 	if !ok {
 		return
@@ -26,11 +27,12 @@ func (vm *ViewModel) vModel(event dom.Event) {
 
 // vOn is the vue on event callback.
 func (vm *ViewModel) vOn(event dom.Event) {
+	event.StopImmediatePropagation()
 	method, ok := findAttrValue(event.Target(), event.Type())
 	if !ok {
 		return
 	}
-	vm.Call(method)
+	vm.bus.pub(event.Type(), method, nil)
 }
 
 // release removes all the event listeners.

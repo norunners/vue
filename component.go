@@ -11,7 +11,7 @@ type Comp struct {
 	el       string
 	tmpl     string
 	data     interface{}
-	methods  map[string]func(Context)
+	methods  map[string]reflect.Value
 	computed map[string]func(Context) interface{}
 	props    map[string]struct{}
 	subs     map[string]*Comp
@@ -20,7 +20,7 @@ type Comp struct {
 
 // Component creates a new component from the given options.
 func Component(options ...Option) *Comp {
-	methods := make(map[string]func(Context), 0)
+	methods := make(map[string]reflect.Value, 0)
 	computed := make(map[string]func(Context) interface{}, 0)
 	props := make(map[string]struct{}, 0)
 	subs := make(map[string]*Comp, 0)
@@ -40,14 +40,14 @@ func Component(options ...Option) *Comp {
 
 // newData creates new data from the function.
 // Without a function the data of the component is returned.
-func (comp *Comp) newData() interface{} {
+func (comp *Comp) newData() reflect.Value {
 	value := reflect.ValueOf(comp.data)
 	if value.Type().Kind() != reflect.Func {
-		return value.Interface()
+		return value
 	}
 	rets := value.Call(nil)
 	if n := len(rets); n != 1 {
 		must(fmt.Errorf("invalid return length: %d", n))
 	}
-	return rets[0].Interface()
+	return rets[0]
 }
