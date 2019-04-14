@@ -225,10 +225,11 @@ func (vm *ViewModel) executeAttrModel(node *html.Node, field string, data map[st
 
 // executeAttrOn executes the vue on attribute.
 func (vm *ViewModel) executeAttrOn(node *html.Node, typ, method string) {
+	event := strings.Split(typ, ".")[0]
 	node.Attr = append(node.Attr, html.Attribute{Key: typ, Val: method})
 
-	vm.addEventListener(typ, vm.vOn)
-	vm.bus.sub(typ, method)
+	vm.addEventListener(event, vm.vOn)
+	vm.bus.sub(event, method)
 }
 
 // parseNode parses the template into an html node.

@@ -46,7 +46,7 @@ func newViewModel(comp *Comp, bus *bus, props map[string]interface{}) *ViewModel
 		props: props,
 		subs:  subs,
 	}
-	vm.bus = newBus(vm, bus)
+	vm.bus = newBus(bus, vm)
 	vm.render()
 	return vm
 }

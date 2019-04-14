@@ -46,7 +46,7 @@ func (vm *ViewModel) mapProps() {
 func (vm *ViewModel) mapComputed() {
 	for computed, function := range vm.comp.computed {
 		if _, ok := vm.state[computed]; !ok {
-			vm.state[computed] = function(vm)
+			vm.state[computed] = vm.compute(function)
 		}
 	}
 }
