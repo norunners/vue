@@ -6,10 +6,9 @@ import (
 
 // bus contains subscriptions of events to methods.
 type bus struct {
+	parent *bus
 	caller caller
 	subs   map[string]map[string]struct{}
-
-	parent *bus
 }
 
 // caller calls a method with optional arguments.
@@ -18,9 +17,9 @@ type caller interface {
 }
 
 // newBus creates a new event bus.
-func newBus(caller caller, parent *bus) *bus {
+func newBus(parent *bus, caller caller) *bus {
 	subs := make(map[string]map[string]struct{}, 0)
-	return &bus{caller: caller, subs: subs, parent: parent}
+	return &bus{parent: parent, caller: caller, subs: subs}
 }
 
 // pub publishes the event with the method and optional arguments.

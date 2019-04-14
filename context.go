@@ -30,8 +30,7 @@ func (vm *ViewModel) Get(field string) interface{} {
 		if !ok {
 			must(fmt.Errorf("unknown data field: %s", field))
 		}
-
-		value = function(vm)
+		value = vm.compute(function)
 		vm.state[field] = value
 	}
 	return value
@@ -66,4 +65,11 @@ func (vm *ViewModel) call(method string, values []reflect.Value) {
 		function.Call(values)
 		vm.render()
 	}
+}
+
+// compute calls the given function and returns the first element.
+func (vm *ViewModel) compute(function reflect.Value) interface{} {
+	values := []reflect.Value{reflect.ValueOf(vm)}
+	rets := function.Call(values)
+	return rets[0].Interface()
 }

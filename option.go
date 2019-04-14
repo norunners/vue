@@ -29,7 +29,7 @@ func Template(tmpl string) Option {
 // Data is the data option for components.
 // This option accepts either a function or a struct.
 // The data function is expected to return a new data value.
-// For example: func() T { return &T{...} }
+// For example: func() *Type { return &Type{...} }
 // Without a function the data is shared across components.
 // The scope of the data is within the component.
 // Data must be a pointer to be mutable by methods.
@@ -57,19 +57,33 @@ func Methods(functions ...interface{}) Option {
 	return func(comp *Comp) {
 		for _, function := range functions {
 			fn := reflect.ValueOf(function)
-			name := fnName(fn)
+			name := funcName(fn)
 			comp.methods[name] = fn
 		}
 	}
 }
 
 // Computed is the computed option for components.
+// The given name and function is registered as a computed property for the component.
+// The function is required to accept context and return a value.
+// For example: func(ctx vue.Context) Type
+func Computed(name string, function interface{}) Option {
+	return func(comp *Comp) {
+		fn := reflect.ValueOf(function)
+		comp.computed[name] = fn
+	}
+}
+
+// Computeds is the computeds option for components.
 // The given functions are registered as computed properties for the component.
-func Computed(functions ...func(Context) interface{}) Option {
+// The functions are required to accept context and return a value.
+// For example: func(ctx vue.Context) Type
+func Computeds(functions ...interface{}) Option {
 	return func(comp *Comp) {
 		for _, function := range functions {
-			name := funcName(function)
-			comp.computed[name] = function
+			fn := reflect.ValueOf(function)
+			name := funcName(fn)
+			comp.computed[name] = fn
 		}
 	}
 }
@@ -92,13 +106,7 @@ func Props(props ...string) Option {
 }
 
 // funcName returns the name of the given function.
-func funcName(function interface{}) string {
-	fn := reflect.ValueOf(function)
-	return fnName(fn)
-}
-
-// fnName returns the name of the given function value.
-func fnName(function reflect.Value) string {
+func funcName(function reflect.Value) string {
 	name := runtime.FuncForPC(function.Pointer()).Name()
 	return stripMetadata(name)
 }
