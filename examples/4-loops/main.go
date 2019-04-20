@@ -42,7 +42,7 @@ func main() {
 	)
 
 	time.AfterFunc(time.Second, func() {
-		vm.Call("Add")
+		vm.Go("Add")
 	})
 	select {}
 }
