@@ -97,13 +97,11 @@ func (dst *vnode) render(src *html.Node, subs subs) {
 				if subNode, ok := subs.vnode(srcChild.Data); ok {
 					subNode.renderAttributes(srcChild.Attr)
 					dst.replace(subNode, dstChild)
+				} else if dstChild.data != srcChild.Data {
+					dst.replace(createNode(srcChild, subs), dstChild)
 				} else {
-					if dstChild.data != srcChild.Data {
-						dst.replace(createNode(srcChild, subs), dstChild)
-					} else {
-						dstChild.renderAttributes(srcChild.Attr)
-						dstChild.render(srcChild, subs)
-					}
+					dstChild.renderAttributes(srcChild.Attr)
+					dstChild.render(srcChild, subs)
 				}
 			case html.TextNode:
 				if dstChild.data != srcChild.Data {

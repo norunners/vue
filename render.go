@@ -28,8 +28,8 @@ func (vm *ViewModel) mapState() {
 	vm.state = make(map[string]interface{}, n)
 	for i := 0; i < n; i++ {
 		name := typ.Field(i).Name
-		field := elem.Field(i)
-		vm.state[name] = field.Interface()
+		value := elem.Field(i)
+		vm.mapField(name, value)
 	}
 	vm.mapProps()
 	vm.mapComputed()
@@ -38,7 +38,8 @@ func (vm *ViewModel) mapState() {
 // mapProps maps props to state.
 func (vm *ViewModel) mapProps() {
 	for field, prop := range vm.props {
-		vm.state[field] = prop
+		value := reflect.ValueOf(prop)
+		vm.mapField(field, value)
 	}
 }
 
@@ -46,7 +47,32 @@ func (vm *ViewModel) mapProps() {
 func (vm *ViewModel) mapComputed() {
 	for computed, function := range vm.comp.computed {
 		if _, ok := vm.state[computed]; !ok {
-			vm.state[computed] = vm.compute(function)
+			value := vm.compute(function)
+			vm.mapField(computed, value)
 		}
 	}
+}
+
+// mapField maps a field to state.
+// Watchers are called on field changes.
+// Returns whether the field was changed.
+func (vm *ViewModel) mapField(field string, newVal reflect.Value) bool {
+	oldField, ok := vm.state[field]
+	if !ok {
+		vm.state[field] = newVal.Interface()
+		return true
+	}
+
+	oldVal := reflect.ValueOf(oldField)
+	if reflect.DeepEqual(newVal, oldVal) {
+		return false
+	}
+
+	if watcher, ok := vm.comp.watchers[field]; ok {
+		values := append([]reflect.Value{reflect.ValueOf(vm)}, newVal, oldVal)
+		watcher.Call(values)
+	}
+
+	vm.state[field] = newVal.Interface()
+	return true
 }

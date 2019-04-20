@@ -88,6 +88,18 @@ func Computeds(functions ...interface{}) Option {
 	}
 }
 
+// Watch is the watch option for components.
+// The given function is registered as a watcher for the data field.
+// All data fields are watchable, e.g. data, props and computed.
+// The function is required to accept context and both the new and old values.
+// For example: func(ctx vue.Context, newVal, oldVal Type)
+func Watch(field string, function interface{}) Option {
+	return func(comp *Comp) {
+		fn := reflect.ValueOf(function)
+		comp.watchers[field] = fn
+	}
+}
+
 // Sub is the subcomponent option for components.
 func Sub(element string, sub *Comp) Option {
 	return func(comp *Comp) {

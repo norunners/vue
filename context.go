@@ -10,7 +10,7 @@ type Context interface {
 	Data() interface{}
 	Get(field string) interface{}
 	Set(field string, value interface{})
-	Call(method string, args ...interface{})
+	Go(method string, args ...interface{})
 	Emit(event string, args ...interface{})
 }
 
@@ -24,33 +24,43 @@ func (vm *ViewModel) Data() interface{} {
 // Props and computed are included to get.
 // Computed may be calculated as needed.
 func (vm *ViewModel) Get(field string) interface{} {
-	value, ok := vm.state[field]
-	if !ok {
-		function, ok := vm.comp.computed[field]
-		if !ok {
-			must(fmt.Errorf("unknown data field: %s", field))
-		}
-		value = vm.compute(function)
-		vm.state[field] = value
+	if value, ok := vm.state[field]; ok {
+		return value
 	}
-	return value
+
+	function, ok := vm.comp.computed[field]
+	if !ok {
+		must(fmt.Errorf("unknown data field: %s", field))
+	}
+	value := vm.compute(function)
+	vm.mapField(field, value)
+	return value.Interface()
 }
 
 // Set assigns the data field to the given value.
 // Props and computed are excluded to set.
 func (vm *ViewModel) Set(field string, value interface{}) {
 	data := reflect.Indirect(vm.data)
-	val := reflect.Indirect(data.FieldByName(field))
-	val.Set(reflect.Indirect(reflect.ValueOf(value)))
+	oldVal := data.FieldByName(field)
+	newVal := reflect.ValueOf(value)
+
+	if changed := vm.mapField(field, newVal); !changed {
+		return
+	}
+
+	oldVal = reflect.Indirect(oldVal)
+	newVal = reflect.Indirect(newVal)
+	oldVal.Set(newVal)
 }
 
-// Call calls the given method with optional arguments then calls render.
-func (vm *ViewModel) Call(method string, args ...interface{}) {
+// Go asynchronously calls the given method with optional arguments.
+// Blocking functions must be called asynchronously.
+func (vm *ViewModel) Go(method string, args ...interface{}) {
 	values := make([]reflect.Value, 0, len(args))
 	for _, arg := range args {
 		values = append(values, reflect.ValueOf(arg))
 	}
-	vm.call(method, values)
+	go vm.call(method, values)
 }
 
 // Emit dispatches the given event with optional arguments.
@@ -68,8 +78,8 @@ func (vm *ViewModel) call(method string, values []reflect.Value) {
 }
 
 // compute calls the given function and returns the first element.
-func (vm *ViewModel) compute(function reflect.Value) interface{} {
+func (vm *ViewModel) compute(function reflect.Value) reflect.Value {
 	values := []reflect.Value{reflect.ValueOf(vm)}
 	rets := function.Call(values)
-	return rets[0].Interface()
+	return rets[0]
 }

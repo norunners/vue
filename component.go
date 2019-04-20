@@ -13,6 +13,7 @@ type Comp struct {
 	data     interface{}
 	methods  map[string]reflect.Value
 	computed map[string]reflect.Value
+	watchers map[string]reflect.Value
 	props    map[string]struct{}
 	subs     map[string]*Comp
 	isSub    bool
@@ -22,6 +23,7 @@ type Comp struct {
 func Component(options ...Option) *Comp {
 	methods := make(map[string]reflect.Value, 0)
 	computed := make(map[string]reflect.Value, 0)
+	watches := make(map[string]reflect.Value, 0)
 	props := make(map[string]struct{}, 0)
 	subs := make(map[string]*Comp, 0)
 
@@ -29,6 +31,7 @@ func Component(options ...Option) *Comp {
 		data:     struct{}{},
 		methods:  methods,
 		computed: computed,
+		watchers: watches,
 		props:    props,
 		subs:     subs,
 	}
