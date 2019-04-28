@@ -5,7 +5,7 @@ import (
 	"reflect"
 )
 
-// Context is received by methods to interact with the component.
+// Context is received by functions to interact with the component.
 type Context interface {
 	Data() interface{}
 	Get(field string) interface{}
@@ -34,23 +34,18 @@ func (vm *ViewModel) Get(field string) interface{} {
 	}
 	value := vm.compute(function)
 	vm.mapField(field, value)
-	return value.Interface()
+	return value
 }
 
 // Set assigns the data field to the given value.
 // Props and computed are excluded to set.
 func (vm *ViewModel) Set(field string, value interface{}) {
 	data := reflect.Indirect(vm.data)
-	oldVal := data.FieldByName(field)
-	newVal := reflect.ValueOf(value)
+	oldVal := reflect.Indirect(data.FieldByName(field))
+	newVal := reflect.Indirect(reflect.ValueOf(value))
 
-	if changed := vm.mapField(field, newVal); !changed {
-		return
-	}
-
-	oldVal = reflect.Indirect(oldVal)
-	newVal = reflect.Indirect(newVal)
 	oldVal.Set(newVal)
+	vm.mapField(field, value)
 }
 
 // Go asynchronously calls the given method with optional arguments.
@@ -78,8 +73,8 @@ func (vm *ViewModel) call(method string, values []reflect.Value) {
 }
 
 // compute calls the given function and returns the first element.
-func (vm *ViewModel) compute(function reflect.Value) reflect.Value {
+func (vm *ViewModel) compute(function reflect.Value) interface{} {
 	values := []reflect.Value{reflect.ValueOf(vm)}
 	rets := function.Call(values)
-	return rets[0]
+	return rets[0].Interface()
 }

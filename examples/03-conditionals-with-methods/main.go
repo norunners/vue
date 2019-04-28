@@ -13,8 +13,8 @@ type Data struct {
 	Seen bool
 }
 
-func ToggleSeen(context vue.Context) {
-	data := context.Data().(*Data)
+func ToggleSeen(vctx vue.Context) {
+	data := vctx.Data().(*Data)
 	data.Seen = !data.Seen
 }
 

@@ -119,23 +119,36 @@ func (vm *ViewModel) executeAttr(node *html.Node, attr html.Attribute, data map[
 }
 
 // executeAttrBind executes the vue bind attribute.
-func (vm *ViewModel) executeAttrBind(node *html.Node, key, value string, data map[string]interface{}) {
-	field, ok := data[value]
+func (vm *ViewModel) executeAttrBind(node *html.Node, key, field string, data map[string]interface{}) {
+	value, ok := data[field]
 	if !ok {
-		must(fmt.Errorf("unknown data field: %s", value))
+		must(fmt.Errorf("unknown data field: %s", field))
 	}
 
 	prop := strings.Title(key)
-	if ok := vm.subs.putProp(node.Data, prop, field); ok {
+	if ok := vm.subs.putProp(node.Data, prop, value); ok {
+		return
+	}
+
+	if key == "class" {
+		class := formatAttrClass(value)
+		node.Attr = append(node.Attr, html.Attribute{Key: key, Val: class})
+		return
+	}
+
+	if key == "style" {
+		style := formatAttrStyle(value)
+		node.Attr = append(node.Attr, html.Attribute{Key: key, Val: style})
 		return
 	}
 
 	// Remove attribute if bound to a false value of type bool.
-	if val, ok := field.(bool); ok && !val {
+	if val, ok := value.(bool); ok && !val {
 		return
 	}
 
-	node.Attr = append(node.Attr, html.Attribute{Key: key, Val: fmt.Sprintf("%v", field)})
+	val := fmt.Sprintf("%v", value)
+	node.Attr = append(node.Attr, html.Attribute{Key: key, Val: val})
 }
 
 // executeAttrFor executes the vue for attribute.
@@ -292,4 +305,54 @@ func orderAttrs(node *html.Node) {
 // Attribute order is preserved.
 func deleteAttr(node *html.Node, i int) {
 	node.Attr = append(node.Attr[:i], node.Attr[i+1:]...)
+}
+
+// formatAttrClass formats the value into a class attribute.
+// For example: { Active: true, DangerText: true } -> "active danger-text"
+// For type: struct { Active: bool `css:"active"`, DangerText: bool `css:"danger-text"` }
+func formatAttrClass(value interface{}) string {
+	elem := reflect.Indirect(reflect.ValueOf(value))
+	typ := elem.Type()
+	n := elem.NumField()
+	buf := bytes.NewBuffer(nil)
+	format := "%s"
+	for i := 0; i < n; i++ {
+		if field := elem.Field(i); field.CanInterface() {
+			value := field.Interface()
+			if val, ok := value.(bool); ok && val {
+				typ := typ.Field(i)
+				class := typ.Tag.Get("css")
+				if class == "" {
+					class = strings.ToLower(typ.Name)
+				}
+				fmt.Fprintf(buf, format, class)
+				format = " %s"
+			}
+		}
+	}
+	return buf.String()
+}
+
+// formatAttrStyle formats the value into a style attribute.
+// For example: { Color: red, FontSize: 8px } -> "color: red; font-size: 8px"
+// For type: struct { Color: string `css:"color"`, FontSize: string `css:"font-size"` }
+func formatAttrStyle(value interface{}) string {
+	elem := reflect.Indirect(reflect.ValueOf(value))
+	typ := elem.Type()
+	n := elem.NumField()
+	buf := bytes.NewBuffer(nil)
+	format := "%s: %v"
+	for i := 0; i < n; i++ {
+		if field := elem.Field(i); field.CanInterface() {
+			typ := typ.Field(i)
+			style := typ.Tag.Get("css")
+			if style == "" {
+				style = strings.ToLower(typ.Name)
+			}
+			value := field.Interface()
+			fmt.Fprintf(buf, format, style, value)
+			format = "; %s: %v"
+		}
+	}
+	return buf.String()
 }
