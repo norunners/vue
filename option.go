@@ -42,7 +42,7 @@ func Data(data interface{}) Option {
 // Method is the method option for components.
 // The given name and function is registered as a method for the component.
 // The function is required to accept context and allows optional arguments.
-// For example: func(ctx vue.Context) or func(ctx vue.Context, a1 Arg1, ..., ak ArgK)
+// For example: func(vctx vue.Context) or func(vctx vue.Context, a1 Arg1, ..., ak ArgK)
 func Method(name string, function interface{}) Option {
 	return func(comp *Comp) {
 		comp.methods[name] = reflect.ValueOf(function)
@@ -52,7 +52,7 @@ func Method(name string, function interface{}) Option {
 // Methods is the methods option for components.
 // The given functions are registered as methods for the component.
 // The functions are required to accept context and allows optional arguments.
-// For example: func(ctx vue.Context) or func(ctx vue.Context, a1 Arg1, ..., ak ArgK)
+// For example: func(vctx vue.Context) or func(vctx vue.Context, a1 Arg1, ..., ak ArgK)
 func Methods(functions ...interface{}) Option {
 	return func(comp *Comp) {
 		for _, function := range functions {
@@ -66,7 +66,7 @@ func Methods(functions ...interface{}) Option {
 // Computed is the computed option for components.
 // The given name and function is registered as a computed property for the component.
 // The function is required to accept context and return a value.
-// For example: func(ctx vue.Context) Type
+// For example: func(vctx vue.Context) Type
 func Computed(name string, function interface{}) Option {
 	return func(comp *Comp) {
 		fn := reflect.ValueOf(function)
@@ -77,7 +77,7 @@ func Computed(name string, function interface{}) Option {
 // Computeds is the computeds option for components.
 // The given functions are registered as computed properties for the component.
 // The functions are required to accept context and return a value.
-// For example: func(ctx vue.Context) Type
+// For example: func(vctx vue.Context) Type
 func Computeds(functions ...interface{}) Option {
 	return func(comp *Comp) {
 		for _, function := range functions {
@@ -92,7 +92,7 @@ func Computeds(functions ...interface{}) Option {
 // The given function is registered as a watcher for the data field.
 // All data fields are watchable, e.g. data, props and computed.
 // The function is required to accept context and both the new and old values.
-// For example: func(ctx vue.Context, newVal, oldVal Type)
+// For example: func(vctx vue.Context, newVal, oldVal Type)
 func Watch(field string, function interface{}) Option {
 	return func(comp *Comp) {
 		fn := reflect.ValueOf(function)

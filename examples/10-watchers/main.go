@@ -26,17 +26,17 @@ type yesno struct {
 	Answer string `json:"answer"`
 }
 
-func Answer(context vue.Context, newQuestion, _ string) {
+func Answer(vctx vue.Context, newQuestion, _ string) {
 	if !strings.HasSuffix(newQuestion, "?") {
-		context.Set("Answer", "Questions usually contain a question mark.")
+		vctx.Set("Answer", "Questions usually contain a question mark.")
 		return
 	}
 
-	context.Go("AsyncAnswer")
+	vctx.Go("AsyncAnswer")
 }
 
-func AsyncAnswer(context vue.Context) {
-	data := context.Data().(*Data)
+func AsyncAnswer(vctx vue.Context) {
+	data := vctx.Data().(*Data)
 	res, err := http.Get("https://yesno.wtf/api")
 	if err != nil {
 		data.Answer = err.Error()

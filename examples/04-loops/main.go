@@ -21,8 +21,8 @@ type Todo struct {
 	Text string
 }
 
-func Add(context vue.Context) {
-	data := context.Data().(*Data)
+func Add(vctx vue.Context) {
+	data := vctx.Data().(*Data)
 	data.Todos = append(data.Todos, Todo{"Build something wasm!"})
 }
 
