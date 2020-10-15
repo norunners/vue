@@ -3,12 +3,13 @@ package vue
 import (
 	"bytes"
 	"fmt"
-	"github.com/cbroglie/mustache"
-	"golang.org/x/net/html"
-	"golang.org/x/net/html/atom"
 	"io"
 	"reflect"
 	"strings"
+
+	"github.com/cbroglie/mustache"
+	"golang.org/x/net/html"
+	"golang.org/x/net/html/atom"
 )
 
 const (

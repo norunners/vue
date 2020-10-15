@@ -1,20 +1,17 @@
 package vue
 
 import (
-	"github.com/gowasm/go-js-dom"
 	"strings"
-	"syscall/js"
-)
 
-// keyboardEvent is the keyboard event type.
-var keyboardEvent = js.Global().Get("KeyboardEvent")
+	dom "honnef.co/go/js/dom/v2"
+)
 
 // addEventListener adds the callback to the element as an event listener unless the type was previously added.
 func (vm *ViewModel) addEventListener(typ string, cb func(dom.Event)) {
 	if _, ok := vm.funcs[typ]; ok {
 		return
 	}
-	fn := vm.vnode.node.AddEventListener(typ, cb, false)
+	fn := vm.vnode.node.AddEventListener(typ, false, cb)
 	vm.funcs[typ] = fn
 }
 
@@ -46,9 +43,9 @@ func (vm *ViewModel) vOn(event dom.Event) {
 	modifiers := strings.TrimPrefix(attrKey, typ)
 	modSet := modSet(modifiers)
 
-	if event.Underlying().InstanceOf(keyboardEvent) {
-		keyType := event.Underlying().Get("key").String()
-		if _, ok := modSet[keyType]; !ok && len(modSet) > 0 {
+	if keyEvent, ok := event.(*dom.KeyboardEvent); ok {
+		key := keyEvent.Key()
+		if _, ok := modSet[key]; !ok && len(modSet) > 0 {
 			return
 		}
 	}
@@ -59,7 +56,8 @@ func (vm *ViewModel) vOn(event dom.Event) {
 // release removes all the event listeners.
 func (vm *ViewModel) release() {
 	for typ, fn := range vm.funcs {
-		vm.vnode.node.RemoveEventListener(typ, fn, false)
+		vm.vnode.node.RemoveEventListener(typ, false, fn)
+		fn.Release()
 	}
 }
 
