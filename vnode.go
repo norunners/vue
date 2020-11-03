@@ -2,12 +2,13 @@ package vue
 
 import (
 	"fmt"
-	"github.com/gowasm/go-js-dom"
-	"golang.org/x/net/html"
 	"syscall/js"
+
+	"golang.org/x/net/html"
+	dom "honnef.co/go/js/dom/v2"
 )
 
-var document dom.Document
+var document = dom.WrapDocument(js.Global().Get("document"))
 
 type vnode struct {
 	parent, firstChild, lastChild, prevSibling, nextSibling *vnode
@@ -17,14 +18,6 @@ type vnode struct {
 	data  string
 
 	node dom.Node
-}
-
-func init() {
-	doc := js.Global().Get("document")
-	if doc == js.Undefined() || doc == js.Null() {
-		panic("failed to initialize document")
-	}
-	document = dom.WrapDocument(doc)
 }
 
 // newNode creates a virtual node by query selecting the given element.
