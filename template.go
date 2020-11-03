@@ -158,9 +158,16 @@ func (vm *ViewModel) executeAttrFor(node *html.Node, value string, data map[stri
 	name := bytes.TrimSpace([]byte(vals[0]))
 	field := strings.TrimSpace(vals[1])
 
-	slice, ok := data[field]
-	if !ok {
+	slice := reflect.ValueOf(data[field])
+	if k := slice.Kind(); k != reflect.Slice && k != reflect.Array {
 		must(fmt.Errorf("slice not found for field: %s", field))
+	}
+
+	n := slice.Len()
+	if n == 0 {
+		next := node.NextSibling
+		node.Parent.RemoveChild(node)
+		return next, true
 	}
 
 	elem := bytes.NewBuffer(nil)
@@ -168,8 +175,6 @@ func (vm *ViewModel) executeAttrFor(node *html.Node, value string, data map[stri
 	must(err)
 
 	buf := bytes.NewBuffer(nil)
-	values := reflect.ValueOf(slice)
-	n := values.Len()
 	for i := 0; i < n; i++ {
 		key := fmt.Sprintf("%s%d", name, vm.index)
 		vm.index++
@@ -178,7 +183,7 @@ func (vm *ViewModel) executeAttrFor(node *html.Node, value string, data map[stri
 		_, err := buf.Write(b)
 		must(err)
 
-		data[key] = values.Index(i).Interface()
+		data[key] = slice.Index(i).Interface()
 	}
 
 	nodes := parseNodes(buf)
@@ -209,11 +214,15 @@ func executeAttrHtml(node *html.Node, field string, data map[string]interface{})
 
 // executeAttrIf executes the vue if attribute.
 func (vm *ViewModel) executeAttrIf(node *html.Node, field string, data map[string]interface{}) (*html.Node, bool) {
-	if value, ok := data[field]; ok {
-		if val, ok := value.(bool); ok && val {
-			return nil, false
-		}
+	negate := strings.HasPrefix(field, "!")
+	if negate {
+		field = field[1:]
 	}
+
+	if val, ok := data[field].(bool); ok && val != negate {
+		return nil, false
+	}
+
 	next := node.NextSibling
 	node.Parent.RemoveChild(node)
 	return next, true
