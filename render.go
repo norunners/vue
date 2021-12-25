@@ -20,18 +20,20 @@ const (
 	vBind = "v-bind"
 	vFor  = "v-for"
 	vIf   = "v-if"
+	vOn   = "v-on"
 )
 
 type renderer struct {
 	tmpl []byte
 	el   dom.Element
+	cbs  *callbacks
 	id   int64
 	tree *vdom.Tree
 	flag *html.Node
 }
 
 // newRenderer creates a new renderer.
-func newRenderer(el string, tmpl []byte) *renderer {
+func newRenderer(el string, tmpl []byte, cbs *callbacks) *renderer {
 	element := dom.GetWindow().Document().QuerySelector(el)
 
 	minifier := minify.New()
@@ -39,7 +41,7 @@ func newRenderer(el string, tmpl []byte) *renderer {
 	tmpl, err := minifier.Bytes("text/html", tmpl)
 	must(err)
 
-	return &renderer{el: element, tmpl: tmpl, tree: &vdom.Tree{}, flag: &html.Node{}}
+	return &renderer{el: element, tmpl: tmpl, cbs: cbs, tree: &vdom.Tree{}, flag: &html.Node{}}
 }
 
 // render executes the template with the given data and applies it to the dom element.
@@ -126,6 +128,8 @@ func (renderer *renderer) renderAttr(node *html.Node, attr html.Attribute, data 
 		node = renderer.renderAttrFor(node, attr.Val, data)
 	case vBind:
 		renderAttrBind(node, part, attr.Val)
+	case vOn:
+		renderer.renderAttrOn(node, part, attr.Val)
 	default:
 		must(fmt.Errorf("unknown vue attribute: %v", dir))
 	}
@@ -186,6 +190,12 @@ func (renderer *renderer) renderAttrFor(node *html.Node, value string, data map[
 // renderAttrBind renders the vue bind attribute.
 func renderAttrBind(node *html.Node, key, value string) {
 	node.Attr = append(node.Attr, html.Attribute{Key: key, Val: fmt.Sprintf("{{ %v }}", value)})
+}
+
+// renderAttrOn renders the vue on attribute.
+func (renderer *renderer) renderAttrOn(node *html.Node, typ, method string) {
+	node.Attr = append(node.Attr, html.Attribute{Key: typ, Val: method})
+	renderer.cbs.addCallback(renderer.el, typ, renderer.cbs.vOn)
 }
 
 // deleteAttr deletes the attribute of the node at the index.
