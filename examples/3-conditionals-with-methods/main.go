@@ -29,7 +29,7 @@ func main() {
 	for tick := time.Tick(time.Second); ; {
 		select {
 		case <-tick:
-			vm.Call("ToggleSeen")
+			vm.Go("ToggleSeen")
 		}
 	}
 }
