@@ -35,31 +35,16 @@ func newTemplate(comp *Comp) *template {
 }
 
 // execute executes the template with the given data to be rendered.
-func (tmpl *template) execute(data map[string]interface{}) []byte {
-	buf := bytes.NewBuffer(tmpl.comp.tmpl)
-	nodes := parse(buf)
-	if n := len(nodes); n != 1 {
-		must(fmt.Errorf("expected a single root element for template: %s but found: %d",
-			tmpl.comp.tmpl, n))
-	}
+func (tmpl *template) execute(data map[string]interface{}) *html.Node {
+	node := parseNode(tmpl.comp.tmpl)
 
-	node := tmpl.executeTraversal(nodes[0], data)
+	node = tmpl.executeTraversal(node, data)
+	executeText(node, data)
 
-	buf = bytes.NewBuffer(nil)
-	err := html.Render(buf, node)
-	must(err)
-
-	template, err := mustache.ParseString(buf.String())
-	must(err)
-
-	buf.Reset()
-	err = template.FRender(buf, data)
-	must(err)
-
-	return buf.Bytes()
+	return node
 }
 
-// executeTraversal recursively traverses the html tree and templates the elements.
+// executeTraversal recursively traverses the html node and templates the elements.
 func (tmpl *template) executeTraversal(node *html.Node, data map[string]interface{}) *html.Node {
 	// Leave the text nodes to be rendered.
 	if node.Type != html.ElementNode {
@@ -79,7 +64,7 @@ func (tmpl *template) executeTraversal(node *html.Node, data map[string]interfac
 			deleteAttr(node, i)
 			i--
 			node = tmpl.executeAttr(node, sub, attr, data)
-			// The flag signals that the tree structure was modified.
+			// The flag signals that the html structure was modified.
 			// The next sibling of flag is the node to execute next.
 			if node == tmpl.flag {
 				return node
@@ -90,11 +75,15 @@ func (tmpl *template) executeTraversal(node *html.Node, data map[string]interfac
 	// Execute subcomponent.
 	if ok {
 		vm := newViewModel(sub)
-		subNode := vm.subRender()
-		node.Parent.InsertBefore(subNode, node)
+		subNode := vm.executeSub()
+		children := children(subNode)
+		for _, child := range children {
+			subNode.RemoveChild(child)
+			node.Parent.InsertBefore(child, node)
+		}
 		node.Parent.RemoveChild(node)
 		// No need to use flag since the subcomponent node is already executed.
-		return subNode
+		return children[len(children)-1]
 	}
 
 	// Execute children.
@@ -110,6 +99,24 @@ func (tmpl *template) executeTraversal(node *html.Node, data map[string]interfac
 	return node
 }
 
+// executeText recursively executes the text node.
+func executeText(node *html.Node, data map[string]interface{}) {
+	switch node.Type {
+	case html.TextNode:
+		if strings.TrimSpace(node.Data) == "" {
+			return
+		}
+
+		var err error
+		node.Data, err = mustache.Render(node.Data, data)
+		must(err)
+	case html.ElementNode:
+		for child := node.FirstChild; child != nil; child = child.NextSibling {
+			executeText(child, data)
+		}
+	}
+}
+
 // executeAttr executes the given vue attribute.
 func (tmpl *template) executeAttr(node *html.Node, sub *Comp, attr html.Attribute, data map[string]interface{}) *html.Node {
 	vals := strings.Split(attr.Key, ":")
@@ -118,13 +125,12 @@ func (tmpl *template) executeAttr(node *html.Node, sub *Comp, attr html.Attribut
 		part = vals[1]
 	}
 	switch dir {
-	case vIf:
-		node = tmpl.executeAttrIf(node, attr.Val, data)
+	case vBind:
+		executeAttrBind(node, sub, part, attr.Val, data)
 	case vFor:
 		node = tmpl.executeAttrFor(node, attr.Val, data)
-	case vBind:
-		// break
-		executeAttrBind(node, sub, part, attr.Val, data)
+	case vIf:
+		node = tmpl.executeAttrIf(node, attr.Val, data)
 	case vModel:
 		tmpl.executeAttrModel(node, attr.Val, data)
 	case vOn:
@@ -135,16 +141,25 @@ func (tmpl *template) executeAttr(node *html.Node, sub *Comp, attr html.Attribut
 	return node
 }
 
-// executeAttrIf executes the vue if attribute.
-func (tmpl *template) executeAttrIf(node *html.Node, field string, data map[string]interface{}) *html.Node {
-	if value, ok := data[field]; ok {
-		if val, ok := value.(bool); ok && val {
-			return node
-		}
+// executeAttrBind executes the vue bind attribute.
+func executeAttrBind(node *html.Node, sub *Comp, key, value string, data map[string]interface{}) {
+	field, ok := data[value]
+	if !ok {
+		must(fmt.Errorf("unknown data field: %s", value))
 	}
-	node.Parent.InsertBefore(tmpl.flag, node)
-	node.Parent.RemoveChild(node)
-	return tmpl.flag
+
+	prop := strings.Title(key)
+	if sub.hasProp(prop) {
+		sub.props[prop] = field
+		return
+	}
+
+	// Remove attribute if bound to a false value of type bool.
+	if val, ok := field.(bool); ok && !val {
+		return
+	}
+
+	node.Attr = append(node.Attr, html.Attribute{Key: key, Val: fmt.Sprintf("%v", field)})
 }
 
 // executeAttrFor executes the vue for attribute.
@@ -176,7 +191,7 @@ func (tmpl *template) executeAttrFor(node *html.Node, value string, data map[str
 		data[key] = values.Index(i).Interface()
 	}
 
-	nodes := parse(buf)
+	nodes := parseNodes(buf)
 	node.Parent.InsertBefore(tmpl.flag, node)
 	for _, child := range nodes {
 		node.Parent.InsertBefore(child, node)
@@ -186,25 +201,16 @@ func (tmpl *template) executeAttrFor(node *html.Node, value string, data map[str
 	return tmpl.flag
 }
 
-// executeAttrBind executes the vue bind attribute.
-func executeAttrBind(node *html.Node, sub *Comp, key, value string, data map[string]interface{}) {
-	field, ok := data[value]
-	if !ok {
-		must(fmt.Errorf("unknown data field: %s", value))
+// executeAttrIf executes the vue if attribute.
+func (tmpl *template) executeAttrIf(node *html.Node, field string, data map[string]interface{}) *html.Node {
+	if value, ok := data[field]; ok {
+		if val, ok := value.(bool); ok && val {
+			return node
+		}
 	}
-
-	prop := strings.Title(key)
-	if sub.hasProp(prop) {
-		sub.props[prop] = field
-		return
-	}
-
-	// Remove attribute if bound to a false value of type bool.
-	if val, ok := field.(bool); ok && !val {
-		return
-	}
-
-	node.Attr = append(node.Attr, html.Attribute{Key: key, Val: fmt.Sprintf("%v", field)})
+	node.Parent.InsertBefore(tmpl.flag, node)
+	node.Parent.RemoveChild(node)
+	return tmpl.flag
 }
 
 // executeAttrModel executes the vue model attribute.
@@ -230,8 +236,19 @@ func (tmpl *template) executeAttrOn(node *html.Node, typ, method string) {
 	tmpl.comp.callback.addEventListener(typ, tmpl.comp.callback.vOn)
 }
 
-// parse parses the template into html nodes.
-func parse(reader io.Reader) []*html.Node {
+// parseNode parses the template into an html node.
+// The node returned is a placeholder, not to be rendered.
+func parseNode(tmpl string) *html.Node {
+	nodes := parseNodes(strings.NewReader(tmpl))
+	node := &html.Node{Type: html.ElementNode}
+	for _, child := range nodes {
+		node.AppendChild(child)
+	}
+	return node
+}
+
+// parseNodes parses the reader into html nodes.
+func parseNodes(reader io.Reader) []*html.Node {
 	nodes, err := html.ParseFragment(reader, &html.Node{
 		Type:     html.ElementNode,
 		Data:     "div",
@@ -268,4 +285,13 @@ func orderAttrs(node *html.Node) {
 // Attribute order is preserved.
 func deleteAttr(node *html.Node, i int) {
 	node.Attr = append(node.Attr[:i], node.Attr[i+1:]...)
+}
+
+// children makes a slice of child html nodes.
+func children(node *html.Node) []*html.Node {
+	children := make([]*html.Node, 0)
+	for child := node.FirstChild; child != nil; child = child.NextSibling {
+		children = append(children, child)
+	}
+	return children
 }

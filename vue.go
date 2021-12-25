@@ -5,8 +5,8 @@ package vue
 type ViewModel struct {
 	comp      *Comp
 	tmpl      *template
-	renderer  *renderer
-	rendered  bool
+	vnode     *vnode
+	executed  bool
 	data      map[string]interface{}
 	callbacks map[string]struct{}
 }
@@ -20,10 +20,10 @@ func New(options ...Option) *ViewModel {
 // newViewModel creates a new view model from the given component.
 func newViewModel(comp *Comp) *ViewModel {
 	tmpl := newTemplate(comp)
-	renderer := newRenderer(comp)
+	vnode := newNode(comp.el)
 	callbacks := make(map[string]struct{}, 0)
 
-	vm := &ViewModel{comp: comp, tmpl: tmpl, renderer: renderer, callbacks: callbacks}
+	vm := &ViewModel{comp: comp, tmpl: tmpl, vnode: vnode, callbacks: callbacks}
 	// The root view model satisfies callback which is passed down to subcomponents.
 	if comp.callback == nil {
 		comp.callback = vm
