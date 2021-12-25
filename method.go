@@ -9,7 +9,7 @@ import (
 // Methods is the methods option for components.
 // The given functions are registered as methods for the component.
 func Methods(functions ...func(context Context)) Option {
-	return func(comp *Component) {
+	return func(comp *Comp) {
 		for _, function := range functions {
 			name := funcName(function)
 			comp.methods[name] = function

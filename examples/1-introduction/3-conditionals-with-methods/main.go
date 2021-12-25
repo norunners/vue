@@ -21,7 +21,7 @@ func ToggleSeen(context vue.Context) {
 }
 
 func main() {
-	comp := vue.New(
+	vm := vue.New(
 		vue.El("#app"),
 		vue.Template(tmpl),
 		vue.Data(&Data{Seen: true}),
@@ -31,7 +31,7 @@ func main() {
 	for ticker := time.NewTicker(time.Second); ; {
 		select {
 		case <-ticker.C:
-			comp.Call("ToggleSeen")
+			vm.Call("ToggleSeen")
 		}
 	}
 }
