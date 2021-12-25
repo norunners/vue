@@ -5,7 +5,7 @@ Package `vue` is the progressive framework for [WebAssembly](https://github.com/
 
 ## Install
 ```bash
-go get -u github.com/norunners/vue
+go get github.com/norunners/vue
 ```
 
 ## Goals
