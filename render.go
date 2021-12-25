@@ -10,6 +10,7 @@ import (
 const (
 	v     = "v-"
 	vBind = "v-bind"
+	vIf   = "v-if"
 )
 
 // renderer renders the given data.
@@ -68,6 +69,8 @@ func newAttr(el dom.Element, key, value string) renderer {
 	switch key {
 	case vBind:
 		return newBindAttr(el, typ, value)
+	case vIf:
+		return newIfAttr(el, value)
 	default:
 		must(fmt.Errorf("unknown vue directive: %v", key))
 	}
@@ -81,6 +84,20 @@ func newBindAttr(el dom.Element, key, value string) renderer {
 
 	update := func(next string) {
 		el.SetAttribute(key, next)
+	}
+	return &updater{tmpl: tmpl, update: update}
+}
+
+// newIfAttr creates a new renderer for a vue if attribute.
+func newIfAttr(el dom.Element, value string) renderer {
+	tmpl, err := mustache.ParseString(fmt.Sprintf("{{ #%v }}visible{{ /%v }}{{ ^%v }}hidden{{ /%v }}",
+		value, value, value, value))
+	must(err)
+
+	style := dom.WrapHTMLElement(el.Underlying()).Style()
+	update := func(next string) {
+		priority := style.GetPropertyPriority("visibility")
+		style.SetProperty("visibility", next, priority)
 	}
 	return &updater{tmpl: tmpl, update: update}
 }

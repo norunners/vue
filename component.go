@@ -7,15 +7,17 @@ import (
 
 // Component is a vue component.
 type Component struct {
-	el   string
-	tmpl string
-	data interface{}
-	root renderer
+	el      string
+	tmpl    string
+	data    interface{}
+	methods map[string]func(*Component)
+	root    renderer
 }
 
 // New creates a new component from the given options.
 func New(options ...Option) *Component {
-	comp := &Component{}
+	methods := make(map[string]func(*Component), 0)
+	comp := &Component{methods: methods}
 	for _, option := range options {
 		option(comp)
 	}
@@ -27,6 +29,19 @@ func New(options ...Option) *Component {
 	comp.root.render(comp.data)
 
 	return comp
+}
+
+// Data returns the data for the component.
+func (comp *Component) Data() interface{} {
+	return comp.data
+}
+
+// Call calls the method for the given name and renders the data.
+func (comp *Component) Call(name string) {
+	if function, ok := comp.methods[name]; ok {
+		function(comp)
+		comp.root.render(comp.data)
+	}
 }
 
 // must panics on errors.
