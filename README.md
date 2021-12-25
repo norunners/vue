@@ -7,6 +7,7 @@ Package `vue` is the progressive framework for [WebAssembly](https://github.com/
 ```bash
 go get github.com/norunners/vue
 ```
+*Requires Go 1.12 or higher.*
 
 ## Goals
 * Provide a unified solution for a framework, state manager and router in the frontend space.
