@@ -15,7 +15,7 @@ type Data struct {
 	Message string
 }
 
-func ReversedMessage(context vue.Context) interface{} {
+func ReversedMessage(context vue.Context) string {
 	message := context.Get("Message").(string)
 	runes := []rune(message)
 	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
@@ -29,7 +29,7 @@ func main() {
 		vue.El("#app"),
 		vue.Template(tmpl),
 		vue.Data(Data{Message: "Hello WebAssembly!"}),
-		vue.Computed(ReversedMessage),
+		vue.Computeds(ReversedMessage),
 	)
 
 	select {}

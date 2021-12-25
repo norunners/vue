@@ -12,7 +12,7 @@ type Comp struct {
 	tmpl     string
 	data     interface{}
 	methods  map[string]reflect.Value
-	computed map[string]func(Context) interface{}
+	computed map[string]reflect.Value
 	props    map[string]struct{}
 	subs     map[string]*Comp
 	isSub    bool
@@ -21,7 +21,7 @@ type Comp struct {
 // Component creates a new component from the given options.
 func Component(options ...Option) *Comp {
 	methods := make(map[string]reflect.Value, 0)
-	computed := make(map[string]func(Context) interface{}, 0)
+	computed := make(map[string]reflect.Value, 0)
 	props := make(map[string]struct{}, 0)
 	subs := make(map[string]*Comp, 0)
 
