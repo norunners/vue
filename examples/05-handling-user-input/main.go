@@ -17,8 +17,8 @@ type Data struct {
 	Message string
 }
 
-func ReverseMessage(context vue.Context) {
-	data := context.Data().(*Data)
+func ReverseMessage(vctx vue.Context) {
+	data := vctx.Data().(*Data)
 	runes := []rune(data.Message)
 	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
 		runes[i], runes[j] = runes[j], runes[i]
