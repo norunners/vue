@@ -2,7 +2,7 @@ package vue
 
 import (
 	"bytes"
-	"github.com/albrow/vdom"
+	"github.com/norunners/vdom"
 	"golang.org/x/net/html"
 )
 

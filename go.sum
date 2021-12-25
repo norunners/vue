@@ -1,0 +1,16 @@
+github.com/cbroglie/mustache v1.0.1 h1:ivMg8MguXq/rrz2eu3tw6g3b16+PQhoTn6EZAhst2mw=
+github.com/cbroglie/mustache v1.0.1/go.mod h1:R/RUa+SobQ14qkP4jtx5Vke5sDytONDQXNLPY/PO69g=
+github.com/fatih/structs v1.0.0 h1:BrX964Rv5uQ3wwS+KRUAJCBBw5PQmgJfJ6v4yly5QwU=
+github.com/fatih/structs v1.0.0/go.mod h1:9NiDSp5zOcgEDl+j00MP/WkGVPOlPRLejGD8Ga6PJ7M=
+github.com/gowasm/go-js-dom v0.0.1 h1:FCbfUmS3wPOepLmQ2pQzicHUEoW9KIYiM+osR/NE1n8=
+github.com/gowasm/go-js-dom v0.0.1/go.mod h1:K37PTzggLHdwZwVKIlgreQbR7b1pwrudrZEFYcPifKE=
+github.com/gowasm/go-js-dom v0.0.2 h1:2xCIv9t7rywZHnVYFPKBoXpHUVS5VIqi68ja9eDpN9c=
+github.com/gowasm/go-js-dom v0.0.2/go.mod h1:K37PTzggLHdwZwVKIlgreQbR7b1pwrudrZEFYcPifKE=
+github.com/norunners/vdom v0.0.0-20180909045003-842f99817089 h1:dIEe+HUWXmsT3Dx+7jT6KpS4zcEHKauqcEl+BnNjPEU=
+github.com/norunners/vdom v0.0.0-20180909045003-842f99817089/go.mod h1:u0F+Q/9amCBoPWoJ5DcHMNWY7jDRxt5KqtDdTidfDko=
+github.com/tdewolff/minify v2.3.5+incompatible h1:oFxBKxTIY1F/1DEJhLeh/T507W56JqZtWVrawFcdadI=
+github.com/tdewolff/minify v2.3.5+incompatible/go.mod h1:9Ov578KJUmAWpS6NeZwRZyT56Uf6o3Mcz9CEsg8USYs=
+github.com/tdewolff/parse v2.3.3+incompatible h1:q6OSjvHtvBucLb34z24OH1xl5wGdw1mI9Vd38Qj9evs=
+github.com/tdewolff/parse v2.3.3+incompatible/go.mod h1:8oBwCsVmUkgHO8M5iCzSIDtpzXOT0WXX9cWhz+bIzJQ=
+golang.org/x/net v0.0.0-20180906233101-161cd47e91fd h1:nTDtHvHSdCn1m6ITfMRqtOd/9+7a3s8RBNOZ3eYZzJA=
+golang.org/x/net v0.0.0-20180906233101-161cd47e91fd/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
