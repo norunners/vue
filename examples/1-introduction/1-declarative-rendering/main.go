@@ -10,7 +10,7 @@ func main() {
 	vue.New(
 		vue.El("#app"),
 		vue.Template("<div>{{ Message }}</div>"),
-		vue.Data(Data{Message: "Hello wasm!"}),
+		vue.Data(Data{Message: "Hello WebAssembly!"}),
 	)
 
 	select {}
