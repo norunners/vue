@@ -5,7 +5,7 @@ Package `vue` is the progressive framework for [WebAssembly](https://github.com/
 
 ## Install
 ```bash
-go get github.com/norunners/vue
+GOARCH=wasm GOOS=js go get github.com/norunners/vue
 ```
 *Requires Go 1.12 or higher.*
 
@@ -62,7 +62,7 @@ go get -u github.com/dave/wasmgo
 
 Serve an example [locally](http://localhost:8080/).
 ```bash
-cd examples/1-declarative-rendering
+cd examples/01-declarative-rendering
 wasmgo serve
 ```
 
