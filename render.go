@@ -16,15 +16,15 @@ func (vm *ViewModel) render() {
 		return
 	}
 
-	data := vm.dataMap()
-	b := vm.tmpl.execute(data)
+	vm.mapData()
+	b := vm.tmpl.execute(vm.data)
 	vm.renderer.render(b)
 }
 
 // subRender renders the subcomponent into a node.
 func (vm *ViewModel) subRender() *html.Node {
-	data := vm.dataMap()
-	b := vm.tmpl.execute(data)
+	vm.mapData()
+	b := vm.tmpl.execute(vm.data)
 	reader := bytes.NewReader(b)
 	nodes := parse(reader)
 	vm.rendered = true
