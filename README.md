@@ -38,7 +38,7 @@ func main() {
 }
 ```
 
-The `index.wasmgo.html` file fetches and runs a `.wasm` WebAssemply file.
+The `index.wasmgo.html` file fetches and runs a `.wasm` WebAssembly file.
 ```html
 <!doctype html>
 <html>

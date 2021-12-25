@@ -13,7 +13,7 @@ type Option func(*Comp)
 // The root element of a component is query selected from the value, e.g. #app or body.
 func El(el string) Option {
 	return func(comp *Comp) {
-		comp.el = document.QuerySelector(el)
+		comp.el = el
 	}
 }
 
@@ -27,6 +27,10 @@ func Template(tmpl string) Option {
 }
 
 // Data is the data option for components.
+// This option accepts either a function or a struct.
+// The data function is expected to return a new data value.
+// For example: func() T { return &T{...} }
+// Without a function the data is shared across components.
 // The scope of the data is within the component.
 // Data must be a pointer to be mutable by methods.
 func Data(data interface{}) Option {
@@ -68,6 +72,7 @@ func Computed(functions ...func(Context) interface{}) Option {
 // Sub is the subcomponent option for components.
 func Sub(element string, sub *Comp) Option {
 	return func(comp *Comp) {
+		sub.isSub = true
 		comp.subs[element] = sub
 	}
 }
@@ -76,7 +81,7 @@ func Sub(element string, sub *Comp) Option {
 func Props(props ...string) Option {
 	return func(sub *Comp) {
 		for _, prop := range props {
-			sub.props[prop] = nil
+			sub.props[prop] = struct{}{}
 		}
 	}
 }
