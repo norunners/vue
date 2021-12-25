@@ -5,14 +5,12 @@ import (
 )
 
 const tmpl = `
-<div>
-  <ol>
-    <todo-item
-      v-for="Item in Todos"
-      v-bind:Todo="Item">
-    </todo-item>
-  </ol>
-</div>
+<ol>
+  <todo-item
+    v-for="Item in Todos"
+    v-bind:Todo="Item">
+  </todo-item>
+</ol>
 `
 
 type Data struct {

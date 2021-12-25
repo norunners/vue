@@ -6,13 +6,11 @@ import (
 )
 
 const tmpl = `
-<div>
-  <ol>
-    <li v-for="Todo in Todos">
-      {{ Todo.Text }}
-    </li>
-  </ol>
-</div>
+<ol>
+  <li v-for="Todo in Todos">
+    {{ Todo.Text }}
+  </li>
+</ol>
 `
 
 type Data struct {

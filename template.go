@@ -15,40 +15,40 @@ const (
 	v      = "v-"
 	vBind  = "v-bind"
 	vFor   = "v-for"
+	vHtml  = "v-html"
 	vIf    = "v-if"
 	vModel = "v-model"
 	vOn    = "v-on"
 )
 
-var attrOrder = []string{vFor, vIf, vModel, vOn, vBind}
+var attrOrder = []string{vFor, vIf, vModel, vOn, vBind, vHtml}
 
 type template struct {
 	comp *Comp
-
 	id   int64
-	flag *html.Node
 }
 
 // newTemplate creates a new template.
 func newTemplate(comp *Comp) *template {
-	return &template{comp: comp, flag: &html.Node{}}
+	return &template{comp: comp}
 }
 
 // execute executes the template with the given data to be rendered.
 func (tmpl *template) execute(data map[string]interface{}) *html.Node {
 	node := parseNode(tmpl.comp.tmpl)
 
-	node = tmpl.executeTraversal(node, data)
+	tmpl.executeElement(node, data)
 	executeText(node, data)
 
 	return node
 }
 
-// executeTraversal recursively traverses the html node and templates the elements.
-func (tmpl *template) executeTraversal(node *html.Node, data map[string]interface{}) *html.Node {
-	// Leave the text nodes to be rendered.
+// executeElement recursively traverses the html node and templates the elements.
+// The next node is always returned which allows execution to jump around as needed.
+func (tmpl *template) executeElement(node *html.Node, data map[string]interface{}) *html.Node {
+	// Leave the text nodes to be executed.
 	if node.Type != html.ElementNode {
-		return node
+		return node.NextSibling
 	}
 
 	// Attempt to create a subcomponent from the element.
@@ -63,11 +63,10 @@ func (tmpl *template) executeTraversal(node *html.Node, data map[string]interfac
 		if strings.HasPrefix(attr.Key, v) {
 			deleteAttr(node, i)
 			i--
-			node = tmpl.executeAttr(node, sub, attr, data)
-			// The flag signals that the html structure was modified.
-			// The next sibling of flag is the node to execute next.
-			if node == tmpl.flag {
-				return node
+			next, modified := tmpl.executeAttr(node, sub, attr, data)
+			// The current node is not longer valid in favor of the next node.
+			if modified {
+				return next
 			}
 		}
 	}
@@ -81,22 +80,17 @@ func (tmpl *template) executeTraversal(node *html.Node, data map[string]interfac
 			subNode.RemoveChild(child)
 			node.Parent.InsertBefore(child, node)
 		}
+		next := node.NextSibling
 		node.Parent.RemoveChild(node)
-		// No need to use flag since the subcomponent node is already executed.
-		return children[len(children)-1]
+		return next
 	}
 
 	// Execute children.
-	for child := node.FirstChild; child != nil; child = child.NextSibling {
-		child = tmpl.executeTraversal(child, data)
-	}
-	// The flag must be removed if used, which preserves the expected html structure.
-	// The flag node intentionally fails to execute.
-	if node == tmpl.flag.Parent {
-		node.RemoveChild(tmpl.flag)
+	for child := node.FirstChild; child != nil; {
+		child = tmpl.executeElement(child, data)
 	}
 
-	return node
+	return node.NextSibling
 }
 
 // executeText recursively executes the text node.
@@ -118,27 +112,32 @@ func executeText(node *html.Node, data map[string]interface{}) {
 }
 
 // executeAttr executes the given vue attribute.
-func (tmpl *template) executeAttr(node *html.Node, sub *Comp, attr html.Attribute, data map[string]interface{}) *html.Node {
+// The next node will be executed next if the html was modified unless it is nil.
+func (tmpl *template) executeAttr(node *html.Node, sub *Comp, attr html.Attribute, data map[string]interface{}) (*html.Node, bool) {
 	vals := strings.Split(attr.Key, ":")
-	dir, part := vals[0], ""
+	typ, part := vals[0], ""
 	if len(vals) > 1 {
 		part = vals[1]
 	}
-	switch dir {
+	var next *html.Node
+	var modified bool
+	switch typ {
 	case vBind:
 		executeAttrBind(node, sub, part, attr.Val, data)
 	case vFor:
-		node = tmpl.executeAttrFor(node, attr.Val, data)
+		next, modified = tmpl.executeAttrFor(node, attr.Val, data)
+	case vHtml:
+		executeAttrHtml(node, attr.Val, data)
 	case vIf:
-		node = tmpl.executeAttrIf(node, attr.Val, data)
+		next, modified = tmpl.executeAttrIf(node, attr.Val, data)
 	case vModel:
 		tmpl.executeAttrModel(node, attr.Val, data)
 	case vOn:
 		tmpl.executeAttrOn(node, part, attr.Val)
 	default:
-		must(fmt.Errorf("unknown vue attribute: %v", dir))
+		must(fmt.Errorf("unknown vue attribute: %v", typ))
 	}
-	return node
+	return next, modified
 }
 
 // executeAttrBind executes the vue bind attribute.
@@ -163,7 +162,7 @@ func executeAttrBind(node *html.Node, sub *Comp, key, value string, data map[str
 }
 
 // executeAttrFor executes the vue for attribute.
-func (tmpl *template) executeAttrFor(node *html.Node, value string, data map[string]interface{}) *html.Node {
+func (tmpl *template) executeAttrFor(node *html.Node, value string, data map[string]interface{}) (*html.Node, bool) {
 	vals := strings.Split(value, "in")
 	name := bytes.TrimSpace([]byte(vals[0]))
 	field := strings.TrimSpace(vals[1])
@@ -192,25 +191,41 @@ func (tmpl *template) executeAttrFor(node *html.Node, value string, data map[str
 	}
 
 	nodes := parseNodes(buf)
-	node.Parent.InsertBefore(tmpl.flag, node)
 	for _, child := range nodes {
 		node.Parent.InsertBefore(child, node)
 	}
 	node.Parent.RemoveChild(node)
+	// The first child is the next node to execute.
+	return nodes[0], true
+}
 
-	return tmpl.flag
+// executeAttrHtml executes the vue html attribute.
+func executeAttrHtml(node *html.Node, field string, data map[string]interface{}) {
+	value, ok := data[field]
+	if !ok {
+		must(fmt.Errorf("unknown data field: %s", field))
+	}
+	html, ok := value.(string)
+	if !ok {
+		must(fmt.Errorf("data field is not of type string: %T", field))
+	}
+
+	nodes := parseNodes(strings.NewReader(html))
+	for _, child := range nodes {
+		node.AppendChild(child)
+	}
 }
 
 // executeAttrIf executes the vue if attribute.
-func (tmpl *template) executeAttrIf(node *html.Node, field string, data map[string]interface{}) *html.Node {
+func (tmpl *template) executeAttrIf(node *html.Node, field string, data map[string]interface{}) (*html.Node, bool) {
 	if value, ok := data[field]; ok {
 		if val, ok := value.(bool); ok && val {
-			return node
+			return nil, false
 		}
 	}
-	node.Parent.InsertBefore(tmpl.flag, node)
+	next := node.NextSibling
 	node.Parent.RemoveChild(node)
-	return tmpl.flag
+	return next, true
 }
 
 // executeAttrModel executes the vue model attribute.
