@@ -1,17 +1,21 @@
 // Package vue is the progressive framework for wasm applications.
 package vue
 
-import "syscall/js"
+import (
+	"reflect"
+	"syscall/js"
+)
 
 // ViewModel is a vue view model, e.g. VM.
 type ViewModel struct {
 	comp  *Comp
 	vnode *vnode
-	data  interface{}
+	data  reflect.Value
 	state map[string]interface{}
 	funcs map[string]js.Func
 	props map[string]interface{}
 	subs  subs
+	bus   *bus
 
 	index int
 }
@@ -19,11 +23,11 @@ type ViewModel struct {
 // New creates a new view model from the given options.
 func New(options ...Option) *ViewModel {
 	comp := Component(options...)
-	return newViewModel(comp, nil)
+	return newViewModel(comp, nil, nil)
 }
 
 // newViewModel creates a new view model from the given component with props.
-func newViewModel(comp *Comp, props map[string]interface{}) *ViewModel {
+func newViewModel(comp *Comp, bus *bus, props map[string]interface{}) *ViewModel {
 	var vnode *vnode
 	if comp.isSub {
 		vnode = newSubNode(comp.tmpl)
@@ -42,6 +46,7 @@ func newViewModel(comp *Comp, props map[string]interface{}) *ViewModel {
 		props: props,
 		subs:  subs,
 	}
+	vm.bus = newBus(vm, bus)
 	vm.render()
 	return vm
 }

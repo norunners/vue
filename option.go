@@ -40,20 +40,25 @@ func Data(data interface{}) Option {
 }
 
 // Method is the method option for components.
-// The given name and function are registered as a method for the component.
-func Method(name string, function func(Context)) Option {
+// The given name and function is registered as a method for the component.
+// The function is required to accept context and allows optional arguments.
+// For example: func(ctx vue.Context) or func(ctx vue.Context, a1 Arg1, ..., ak ArgK)
+func Method(name string, function interface{}) Option {
 	return func(comp *Comp) {
-		comp.methods[name] = function
+		comp.methods[name] = reflect.ValueOf(function)
 	}
 }
 
 // Methods is the methods option for components.
 // The given functions are registered as methods for the component.
-func Methods(functions ...func(Context)) Option {
+// The functions are required to accept context and allows optional arguments.
+// For example: func(ctx vue.Context) or func(ctx vue.Context, a1 Arg1, ..., ak ArgK)
+func Methods(functions ...interface{}) Option {
 	return func(comp *Comp) {
 		for _, function := range functions {
-			name := funcName(function)
-			comp.methods[name] = function
+			fn := reflect.ValueOf(function)
+			name := fnName(fn)
+			comp.methods[name] = fn
 		}
 	}
 }
@@ -89,7 +94,12 @@ func Props(props ...string) Option {
 // funcName returns the name of the given function.
 func funcName(function interface{}) string {
 	fn := reflect.ValueOf(function)
-	name := runtime.FuncForPC(fn.Pointer()).Name()
+	return fnName(fn)
+}
+
+// fnName returns the name of the given function value.
+func fnName(function reflect.Value) string {
+	name := runtime.FuncForPC(function.Pointer()).Name()
 	return stripMetadata(name)
 }
 
@@ -97,5 +107,5 @@ func funcName(function interface{}) string {
 func stripMetadata(name string) string {
 	parts := strings.Split(name, ".")
 	name = parts[len(parts)-1]
-	return strings.TrimRight(name, "-fm")
+	return strings.TrimSuffix(name, "-fm")
 }

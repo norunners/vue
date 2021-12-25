@@ -149,6 +149,9 @@ func (vnode *vnode) renderAttributes(attrs []html.Attribute) {
 func (vnode *vnode) setAttr(key, val string) {
 	vnode.attrs[key] = val
 	if vnode.node != nil {
+		if key == "value" {
+			vnode.node.Underlying().Set(key, val)
+		}
 		vnode.node.(dom.Element).SetAttribute(key, val)
 	}
 }

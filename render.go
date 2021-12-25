@@ -2,7 +2,7 @@ package vue
 
 import (
 	"fmt"
-	"github.com/fatih/structs"
+	"reflect"
 )
 
 // render executes and renders the prepared state.
@@ -22,7 +22,15 @@ func (vm *ViewModel) render() {
 
 // mapData creates a map of state from data, props and computed.
 func (vm *ViewModel) mapState() {
-	vm.state = structs.Map(vm.data)
+	elem := reflect.Indirect(vm.data)
+	typ := elem.Type()
+	n := elem.NumField()
+	vm.state = make(map[string]interface{}, n)
+	for i := 0; i < n; i++ {
+		name := typ.Field(i).Name
+		field := elem.Field(i)
+		vm.state[name] = field.Interface()
+	}
 	vm.mapProps()
 	vm.mapComputed()
 }

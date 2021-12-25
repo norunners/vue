@@ -63,25 +63,25 @@ func (sub *sub) putProp(field string, data interface{}) bool {
 
 // newInstance creates a new instance of the subcomponent with props.
 // // Returns false if the element is not a subcomponent.
-func (subs subs) newInstance(element string) bool {
+func (subs subs) newInstance(element string, bus *bus) bool {
 	sub, ok := subs[element]
 	if !ok {
 		return false
 	}
-	return sub.newInstance()
+	return sub.newInstance(bus)
 }
 
 // newInstance creates a new instance of the subcomponent with props.
-func (sub *sub) newInstance() bool {
+func (sub *sub) newInstance(bus *bus) bool {
 	if inst, ok := sub.instances[sub.index]; ok {
 		if inst.vm == nil {
-			inst.vm = newViewModel(sub.comp, inst.props)
+			inst.vm = newViewModel(sub.comp, bus, inst.props)
 		} else {
 			inst.vm.props = inst.props
 			inst.vm.render()
 		}
 	} else {
-		vm := newViewModel(sub.comp, nil)
+		vm := newViewModel(sub.comp, bus, nil)
 		sub.instances[sub.index] = &instance{vm: vm}
 	}
 	sub.index++
